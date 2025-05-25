@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to UNITE - Registration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Karla:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Karla', sans-serif;
+            background-color: #f8f4e9;
+        }
+        
+        .title-font {
+            font-family: 'Playfair Display', serif;
+        }
+        
+        .bg-afro-pattern {
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MDAiIGhlaWdodD0iNjAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii4wNSIgbnVtT2N0YXZlcz0iNSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxwYXRoIGZpbHRlcj0idXJsKCNhKSIgZD0iTTAgMGg2MDB2NjAwSDB6IiBvcGFjaXR5PSIuMDMiLz48L3N2Zz4=');
+            background-size: 600px;
+            background-blend-mode: overlay;
+        }
+        
+        .btn-primary {
+            background-color: #8b5a2b;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background-color: #6b4423;
+            transform: translateY(-2px);
+        }
+        
+        .form-input:focus {
+            border-color: #8b5a2b;
+            box-shadow: 0 0 0 3px rgba(139, 90, 43, 0.2);
+        }
+        
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+        }
+        
+        .modal-content {
+            background-color: #f8f4e9;
+            margin: 10% auto;
+            padding: 30px;
+            border: 1px solid #8b5a2b;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .close {
+            color: #8b5a2b;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close:hover {
+            color: #6b4423;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+    <!-- Header Section -->
+    <header class="bg-amber-900 text-amber-50 py-6 bg-afro-pattern">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row items-center justify-between">
+                <div class="flex items-center mb-4 md:mb-0">
+                    <div class="w-16 h-16 rounded-full bg-amber-700 flex items-center justify-center mr-4">
+                        <i class="fas fa-hands-helping text-3xl text-amber-200"></i>
+                    </div>
+                    <h1 class="title-font text-3xl md:text-4xl font-bold">
+                        <span class="text-amber-200">UNITE</span>
+                    </h1>
+                </div>
+                <div class="text-center md:text-right">
+                    <p class="text-amber-200 italic">"One God, One Aim, One Destiny."</p>
+                    <div class="flex justify-center md:justify-end space-x-4 mt-2">
+                        <a href="#" class="text-amber-200 hover:text-white"><i class="fab fa-instagram text-xl"></i></a>
+                        <a href="#" class="text-amber-200 hover:text-white"><i class="fab fa-twitter text-xl"></i></a>
+                        <a href="#" class="text-amber-200 hover:text-white"><i class="fab fa-facebook text-xl"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="py-12 md:py-20 bg-gradient-to-b from-amber-900 to-amber-800 text-white">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 mb-10 md:mb-0">
+                    <h2 class="title-font text-4xl md:text-5xl font-bold mb-6">
+                        ✊🏾 Welcome to <span class="text-amber-200">UNITE</span>
+                    </h2>
+                    <p class="text-lg mb-6">
+                        A 2nd-tier cooperative focused on empowering Black and Brown communities through self-sustainability, education, and cultural liberation.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#register" class="btn-primary text-white px-6 py-3 rounded-full font-semibold">
+                            Register Now <i class="fas fa-arrow-right ml-2"></i>
+                        </a>
+                        <a href="#about" class="border-2 border-amber-200 text-amber-200 px-6 py-3 rounded-full font-semibold hover:bg-amber-200 hover:text-amber-900 transition">
+                            Learn More
+                        </a>
+                    </div>
+                </div>
+                <div class="md:w-1/2 flex justify-center">
+                    <div class="relative w-64 h-64 md:w-80 md:h-80">
+                        <div class="absolute inset-0 bg-amber-200 rounded-full opacity-20 animate-pulse"></div>
+                        <div class="absolute inset-4 bg-amber-100 rounded-full flex items-center justify-center animate-float">
+                            <img src="https://images.unsplash.com/photo-1581094271901-8022df4466f9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80" 
+                                 alt="African students learning" 
+                                 class="w-full h-full rounded-full object-cover border-4 border-amber-900">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="py-16 bg-amber-50">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="title-font text-3xl md:text-4xl font-bold mb-4">Our Mission</h2>
+                <div class="w-24 h-1 bg-amber-800 mx-auto mb-6"></div>
+                <p class="max-w-3xl mx-auto text-lg">
+                    UNITE develops and shares Afrocentric STEAM curriculum, hosts Saturday School programming, and builds future-forward solutions led by our youth and elders together.
+                </p>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Saturday School -->
+                <div class="bg-white p-8 rounded-lg shadow-lg hover:shadow-xl transition">
+                    <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-6 mx-auto">
+                        <i class="fas fa-school text-2xl text-amber-800"></i>
+                    </div>
+                    <h3 class="title-font text-xl font-bold mb-4 text-center">🌱 Saturday School</h3>
+                    <ul class="space-y-2 text-gray-700">
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-amber-600 mt-1 mr-2"></i>
+                            <span>Afrocentric STEAM lessons</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-amber-600 mt-1 mr-2"></i>
+                            <span>Hands-on projects on energy, frequency & vibration</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-amber-600 mt-1 mr-2"></i>
+                            <span>Community building and cultural restoration</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-amber-600 mt-1 mr-2"></i>
+                            <span>Knowledge of self and sustainability training</span>
+                        </li>
+                    </ul>
+                    <p class="mt-4 text-sm italic text-amber-800">
+                        📍 Open to all youth and families virtually and locally.
+                    </p>
+                </div>
+                
+                <!-- Curriculum -->
+                <div class="bg-white p-8 rounded-lg shadow-lg hover:shadow-xl transition">
+                    <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-6 mx-auto">
+                        <i class="fas fa-book-open text-2xl text-amber-800"></i>
+                    </div>
+                    <h3 class="title-font text-xl font-bold mb-4 text-center">🧠 Afrocentric STEAM</h3>
+                    <ul class="space-y-2 text-gray-700">
+                        <li class="flex items-start">
+                            <i class="fas fa-atom text-amber-600 mt-1 mr-2"></i>
+                            <span>Black contributions to science and tech</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-leaf text-amber-600 mt-1 mr-2"></i>
+                            <span>DIY sustainability projects</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-brain text-amber-600 mt-1 mr-2"></i>
+                            <span>Quantum thinking + ancestral wisdom</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-wave-square text-amber-600 mt-1 mr-2"></i>
+                            <span>Frequency, sound, and vibration</span>
+                        </li>
+                    </ul>
+                    <blockquote class="mt-4 p-3 bg-amber-50 border-l-4 border-amber-600 italic">
+                        "We are all geniuses — we just have to discover what we're a genius in."
+                    </blockquote>
+                </div>
+                
+                <!-- Get Involved -->
+                <div class="bg-white p-8 rounded-lg shadow-lg hover:shadow-xl transition">
+                    <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-6 mx-auto">
+                        <i class="fas fa-hands-helping text-2xl text-amber-800"></i>
+                    </div>
+                    <h3 class="title-font text-xl font-bold mb-4 text-center">🤝 Get Involved</h3>
+                    <ul class="space-y-3 text-gray-700">
+                        <li class="flex items-start">
+                            <i class="fas fa-hands text-amber-600 mt-1 mr-2"></i>
+                            <span>Volunteer for youth workshops</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-donate text-amber-600 mt-1 mr-2"></i>
+                            <span>Donate to help us grow</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-users text-amber-600 mt-1 mr-2"></i>
+                            <span>Join the co-op</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-share-alt text-amber-600 mt-1 mr-2"></i>
+                            <span>Share your knowledge with the next generation</span>
+                        </li>
+                    </ul>
+                    <div class="mt-6 text-center">
+                        <a href="mailto:unitehella@gmail.com" class="text-amber-800 hover:text-amber-600 font-semibold">
+                            <i class="fas fa-envelope mr-2"></i> Contact us to partner or support
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Registration Form -->
+    <section id="register" class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="title-font text-3xl md:text-4xl font-bold mb-4">Join Our Community</h2>
+                    <div class="w-24 h-1 bg-amber-800 mx-auto mb-6"></div>
+                    <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                        Register for UNITE's Saturday School programming or express interest in volunteering. Together we rise!
+                    </p>
+                </div>
+                
+                <form id="registrationForm" class="bg-amber-50 rounded-lg shadow-md p-8 md:p-10">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <!-- Personal Info -->
+                        <div class="space-y-6">
+                            <h3 class="title-font text-xl font-semibold text-amber-900 border-b pb-2">Personal Information</h3>
+                            
+                            <div>
+                                <label for="firstName" class="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                                <input type="text" id="firstName" name="firstName" required 
+                                       class="form-input w-full px-4 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            
+                            <div>
+                                <label for="lastName" class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                                <input type="text" id="lastName" name="lastName" required 
+                                       class="form-input w-full px-4 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            
+                            <div>
+                                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                                <input type="email" id="email" name="email" required 
+                                       class="form-input w-full px-4 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            
+                            <div>
+                                <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                                <input type="tel" id="phone" name="phone" 
+                                       class="form-input w-full px-4 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            
+                            <div>
+                                <label for="dob" class="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                                <input type="date" id="dob" name="dob" 
+                                       class="form-input w-full px-4 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                        </div>
+                        
+                        <!-- Program Selection -->
+                        <div class="space-y-6">
+                            <h3 class="title-font text-xl font-semibold text-amber-900 border-b pb-2">Program Information</h3>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">I am registering as a:</label>
+                                <div class="space-y-2">
+                                    <label class="flex items-center">
+                                        <input type="radio" name="role" value="student" class="h-4 w-4 text-amber-600 focus:ring-amber-500">
+                                        <span class="ml-2">Student</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="radio" name="role" value="parent" class="h-4 w-4 text-amber-600 focus:ring-amber-500">
+                                        <span class="ml-2">Parent/Guardian</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="radio" name="role" value="volunteer" class="h-4 w-4 text-amber-600 focus:ring-amber-500">
+                                        <span class="ml-2">Volunteer</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="radio" name="role" value="educator" class="h-4 w-4 text-amber-600 focus:ring-amber-500">
+                                        <span class="ml-2">Educator</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div id="studentFields" class="hidden space-y-4">
+                                <div>
+                                    <label for="grade" class="block text-sm font-medium text-gray-700 mb-1">Grade Level</label>
+                                    <select id="grade" name="grade" class="form-input w-full px-4 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                                        <option value="">Select grade</option>
+                                        <option value="k-2">Kindergarten - 2nd Grade</option>
+                                        <option value="3-5">3rd - 5th Grade</option>
+                                        <option value="6-8">6th - 8th Grade</option>
+                                        <option value="9-12">9th - 12th Grade</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label for="school" class="block text-sm font-medium text-gray-700 mb-1">Current School</label>
+                                    <input type="text" id="school" name="school" 
+                                           class="form-input w-full px-4 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                                </div>
+                            </div>
+                            
+                            <div id="volunteerFields" class="hidden space-y-4">
+                                <div>
+                                    <label for="skills" class="block text-sm font-medium text-gray-700 mb-1">Skills/Expertise</label>
+                                    <textarea id="skills" name="skills" rows="2" 
+                                              class="form-input w-full px-4 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+                                </div>
+                                
+                                <div>
+                                    <label for="availability" class="block text-sm font-medium text-gray-700 mb-1">Availability</label>
+                                    <select id="availability" name="availability" class="form-input w-full px-4 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                                        <option value="">Select availability</option>
+                                        <option value="weekends">Weekends</option>
+                                        <option value="weekdays">Weekdays</option>
+                                        <option value="both">Both</option>
+                                        <option value="varies">Varies</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Interested in:</label>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" name="interest" value="saturday-school" class="h-4 w-4 text-amber-600 focus:ring-amber-500">
+                                        <span class="ml-2">Saturday School</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" name="interest" value="steam-workshops" class="h-4 w-4 text-amber-600 focus:ring-amber-500">
+                                        <span class="ml-2">STEAM Workshops</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" name="interest" value="volunteering" class="h-4 w-4 text-amber-600 focus:ring-amber-500">
+                                        <span class="ml-2">Volunteering</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" name="interest" value="membership" class="h-4 w-4 text-amber-600 focus:ring-amber-500">
+                                        <span class="ml-2">Co-op Membership</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label for="hearAbout" class="block text-sm font-medium text-gray-700 mb-1">How did you hear about us?</label>
+                                <select id="hearAbout" name="hearAbout" class="form-input w-full px-4 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                                    <option value="">Select option</option>
+                                    <option value="social-media">Social Media</option>
+                                    <option value="friend">Friend/Family</option>
+                                    <option value="event">Community Event</option>
+                                    <option value="search">Online Search</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8">
+                        <label for="comments" class="block text-sm font-medium text-gray-700 mb-1">Additional Comments or Questions</label>
+                        <textarea id="comments" name="comments" rows="4" 
+                                  class="form-input w-full px-4 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+                    </div>
+                    
+                    <div class="mt-8 flex items-center">
+                        <input type="checkbox" id="consent" name="consent" required 
+                               class="h-4 w-4 text-amber-600 focus:ring-amber-500">
+                        <label for="consent" class="ml-2 block text-sm text-gray-700">
+                            I agree to the <a href="#" class="text-amber-700 hover:text-amber-900 underline">terms and conditions</a> and consent to receiving communications from UNITE.
+                        </label>
+                    </div>
+                    
+                    <div class="mt-10 text-center">
+                        <button type="submit" class="btn-primary text-white px-8 py-3 rounded-full font-semibold text-lg hover:bg-amber-800 transition">
+                            Submit Registration <i class="fas fa-paper-plane ml-2"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="py-16 bg-amber-100">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="title-font text-3xl md:text-4xl font-bold mb-4">Connect With Us</h2>
+                    <div class="w-24 h-1 bg-amber-800 mx-auto mb-6"></div>
+                </div>
+                
+                <div class="grid md:grid-cols-3 gap-8 text-center">
+                    <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition">
+                        <div class="w-16 h-16 bg-amber-200 rounded-full flex items-center justify-center mb-4 mx-auto">
+                            <i class="fas fa-globe-africa text-2xl text-amber-800"></i>
+                        </div>
+                        <h3 class="title-font text-xl font-semibold mb-2">Website</h3>
+                        <a href="https://unitehella.org" target="_blank" class="text-amber-700 hover:text-amber-900">
+                            unitehella.org
+                        </a>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition">
+                        <div class="w-16 h-16 bg-amber-200 rounded-full flex items-center justify-center mb-4 mx-auto">
+                            <i class="fas fa-link text-2xl text-amber-800"></i>
+                        </div>
+                        <h3 class="title-font text-xl font-semibold mb-2">Linktree</h3>
+                        <a href="https://linktr.ee/uniteinc" target="_blank" class="text-amber-700 hover:text-amber-900">
+                            linktr.ee/uniteinc
+                        </a>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition">
+                        <div class="w-16 h-16 bg-amber-200 rounded-full flex items-center justify-center mb-4 mx-auto">
+                            <i class="fas fa-envelope text-2xl text-amber-800"></i>
+                        </div>
+                        <h3 class="title-font text-xl font-semibold mb-2">Email</h3>
+                        <a href="mailto:unitehella@gmail.com" class="text-amber-700 hover:text-amber-900">
+                            unitehella@gmail.com
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-amber-900 text-amber-100 py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-amber-700 flex items-center justify-center mr-3">
+                            <i class="fas fa-hands-helping text-lg text-amber-200"></i>
+                        </div>
+                        <h3 class="title-font text-xl font-bold">
+                            <span class="text-amber-200">UNITE</span>
+                        </h3>
+                    </div>
+                    <p class="mt-2 text-sm italic">"One God, One Aim, One Destiny."</p>
+                </div>
+                
+                <div class="flex space-x-6">
+                    <a href="#" class="text-amber-200 hover:text-white"><i class="fab fa-instagram text-xl"></i></a>
+                    <a href="#" class="text-amber-200 hover:text-white"><i class="fab fa-twitter text-xl"></i></a>
+                    <a href="#" class="text-amber-200 hover:text-white"><i class="fab fa-facebook text-xl"></i></a>
+                    <a href="#" class="text-amber-200 hover:text-white"><i class="fab fa-youtube text-xl"></i></a>
+                </div>
+            </div>
+            
+            <div class="border-t border-amber-800 mt-6 pt-6 text-sm text-center md:text-left">
+                <p>&copy; 2023 UNITE. All rights reserved. | Designed with ❤️ for the community</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Admin Access Modal -->
+    <div id="adminModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 class="title-font text-2xl font-bold mb-4 text-amber-900">Admin Access</h2>
+            <div class="mb-4">
+                <label for="adminPassword" class="block text-sm font-medium text-gray-700 mb-1">Enter Password</label>
+                <input type="password" id="adminPassword" class="form-input w-full px-4 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500">
+            </div>
+            <button id="accessDataBtn" class="btn-primary text-white px-6 py-2 rounded-full font-semibold hover:bg-amber-800 transition">
+                Access Data
+            </button>
+            <p id="passwordError" class="text-red-600 mt-2 hidden">Incorrect password. Please try again.</p>
+        </div>
+    </div>
+
+    <script>
+        // Show/hide fields based on role selection
+        document.querySelectorAll('input[name="role"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                document.getElementById('studentFields').classList.add('hidden');
+                document.getElementById('volunteerFields').classList.add('hidden');
+                
+                if (this.value === 'student') {
+                    document.getElementById('studentFields').classList.remove('hidden');
+                } else if (this.value === 'volunteer') {
+                    document.getElementById('volunteerFields').classList.remove('hidden');
+                }
+            });
+        });
+        // Modal functionality
+        const modal = document.getElementById("adminModal");
+        const btn = document.getElementById("accessDataBtn");
+        const span = document.getElementsByClassName("close")[0];
+        const passwordError = document.getElementById("passwordError");
+        // Correct password (in a real app, this would be server-side)
+        const correctPassword = "UNITE2023";
+        // When the user clicks the button, open the modal 
+        function openAdminModal() {
+            modal.style.display = "block";
+        }
+        // When the user clicks on <span> (x), close the modal
+        span.onclick = function() {
+            modal.style.display = "none";
+            passwordError.classList.add("hidden");
+        }
+        // When the user clicks anywhere outside of the modal, close it
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+                passwordError.classList.add("hidden");
+            }
+        }
+        // Check password and provide access
+        btn.onclick = function() {
+            const enteredPassword = document.getElementById("adminPassword").value;
+            if (enteredPassword === correctPassword) {
+                modal.style.display = "none";
+                passwordError.classList.add("hidden");
+                exportToExcel();
+            } else {
+                passwordError.classList.remove("hidden");
+            }
+        }
+        // Form submission
+        document.getElementById('registrationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Collect form data
+            const formData = new FormData(this);
+            const data = {};
+            formData.forEach((value, key) => {
+                // Handle checkboxes and radio buttons
+                if (key === 'interest') {
+                    if (!data[key]) data[key] = [];
+                    data[key].push(value);
+                } else {
+                    data[key] = value;
+                }
+            });
+            // For checkboxes, join multiple values with comma
+            if (data.interest && Array.isArray(data.interest)) {
+                data.interest = data.interest.join(', ');
+            }
+            // Save to localStorage (simulating database)
+            let registrations = JSON.parse(localStorage.getItem('uniteRegistrations') || '[]');
+            registrations.push(data);
+            localStorage.setItem('uniteRegistrations', JSON.stringify(registrations));
+            // Send email notification (simulated)
+            sendEmailNotification(data);
+            // Show success message
+            alert('Thank you for registering with UNITE! We will contact you soon.');
+            this.reset();
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        // Function to export data to Excel
+        function exportToExcel() {
+            const registrations = JSON.parse(localStorage.getItem('uniteRegistrations') || '[]');
+            
+            if (registrations.length === 0) {
+                alert('No registration data available to export.');
+                return;
+            }
+            // Convert to worksheet
+            const ws = XLSX.utils.json_to_sheet(registrations);
+            
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Registrations");
+            
+            // Export to Excel file
+            XLSX.writeFile(wb, "UNITE_Registrations.xlsx");
+        }
+        // Function to simulate sending email notification
+        function sendEmailNotification(data) {
+            // In a real app, this would be an AJAX call to a server-side script
+            // For this demo, we'll just log it and create a mailto link
+            
+            // Create text version of the data
+            let textContent = `New UNITE Registration:\n\n`;
+            for (const key in data) {
+                if (data[key]) {
+                    textContent += `${key}: ${data[key]}\n`;
+                }
+            }
+            
+            // Create mailto link (user would need to manually send)
+            const subject = "New UNITE Registration";
+            const body = encodeURIComponent(textContent);
+            const mailtoLink = `mailto:unitehella@gmail.com?subject=${encodeURIComponent(subject)}&body=${body}`;
+            
+            console.log("Email content:\n", textContent);
+            console.log("Mailto link:", mailtoLink);
+            
+            // In a real implementation, you would use a server-side script to send the email
+            // For now, we'll just open the mail client (commented out to avoid annoyance)
+            // window.location.href = mailtoLink;
+        }
+        // Add hidden admin access button (for demo purposes)
+        const adminBtn = document.createElement('button');
+        adminBtn.textContent = 'Admin';
+        adminBtn.className = 'fixed bottom-4 right-4 bg-amber-800 text-white p-3 rounded-full shadow-lg hover:bg-amber-900 transition';
+        adminBtn.onclick = openAdminModal;
+        document.body.appendChild(adminBtn);
+    </script>
+</body>
+</html>
