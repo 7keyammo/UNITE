@@ -28,6 +28,10 @@ class PresenceManager:
         self.interval_seconds = max(5, int(self.config.get("sample_interval_seconds", 20)))
         self._latest: dict[str, Any] | None = None
         self._last_saved_at = 0.0
+        # Optional callable that receives each saved snapshot and normalizes it
+        # into events. It is a one-way outlet: presence hands over observations
+        # it already collected and receives no capability in return.
+        self.event_sink = None
         self._ensure_schema()
 
     def _ensure_schema(self) -> None:
@@ -204,7 +208,28 @@ class PresenceManager:
             self._last_saved_at = time.time()
             if sample.get("alerts"):
                 self.memory.add_event("presence_change", {"alerts": sample["alerts"]})
+            self._emit_events(sample)
         return sample
+
+    def _emit_events(self, sample: dict[str, Any]) -> None:
+        """Forward an already-collected snapshot to the event bus, if wired.
+
+        A failure here must not break sampling, but it must not be invisible
+        either, so it is recorded as a degraded-capability event.
+        """
+        sink = self.event_sink
+        if sink is None:
+            return
+        try:
+            sink(sample)
+        except Exception as exc:
+            try:
+                self.memory.add_event(
+                    "presence_event_bridge_failed",
+                    {"error": f"{type(exc).__name__}: {exc}"},
+                )
+            except Exception:
+                pass
 
     def _derive_alerts(self, previous: dict[str, Any] | None, sample: dict[str, Any]) -> list[dict[str, Any]]:
         alerts: list[dict[str, Any]] = []

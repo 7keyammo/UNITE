@@ -156,6 +156,72 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "bluetooth_scan_seconds": 6,
         "service_scan_timeout_seconds": 8,
     },
+    "events": {
+        "enabled": True,
+        "presence_bridge": True,
+        "bus": {
+            "enabled": True,
+            "debounce_seconds": 30,
+            "cooldown_seconds": 0,
+            "min_severity": "debug",
+            "max_events": 5000,
+            # Per-kind overrides win over the defaults above. Keys may be
+            # "<source>:<kind>", "<kind>" or "<source>", matched in that order.
+            "per_kind": {
+                "low_battery": {"cooldown_seconds": 900},
+                "high_temperature": {"cooldown_seconds": 600},
+                "sensor_reading": {"debounce_seconds": 60},
+            },
+        },
+        "reactions": {
+            "enabled": True,
+            "builtin_rules": True,
+            "default_cooldown_seconds": 900,
+            "max_reactions_per_event": 8,
+        },
+        "notifications": {
+            "enabled": True,
+            "min_severity": "info",
+            "max_notifications": 1000,
+        },
+    },
+    "drivers": {
+        "enabled": True,
+        # Every driver is opt-in and starts disabled. Discovering a device
+        # never authorizes connecting to it or writing to it.
+        "poll_interval_seconds": 30,
+        "ble": {
+            "enabled": False,
+            "adapter": None,
+            "scan_seconds": 6,
+            "allow_devices": [],
+            "profiles": {},
+            "allow_writes": False,
+        },
+        "serial": {
+            "enabled": False,
+            "allow_ports": [],
+            "baudrate": 9600,
+            "timeout_seconds": 2,
+            "parser": "line",
+            "allow_writes": False,
+        },
+        "mqtt": {
+            "enabled": False,
+            "host": "127.0.0.1",
+            "port": 1883,
+            "topics": [],
+            "client_id": "daqauntum",
+            "keepalive_seconds": 60,
+            "max_cached_topics": 200,
+        },
+        "home_assistant": {
+            "enabled": False,
+            "poll_interval_seconds": 60,
+            "entities": [],
+            "max_entities": 200,
+        },
+    },
     "demo": {
         "enabled": True,
         "speak_steps": True,

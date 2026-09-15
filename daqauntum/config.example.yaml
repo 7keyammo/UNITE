@@ -339,6 +339,83 @@ presence:
   bluetooth_scan_seconds: 6
   service_scan_timeout_seconds: 8
 
+# v0.4.1 event bus, deterministic reaction rules and notification queue.
+# Sources publish observations here; rules may notify you, queue a task, or
+# propose a tool call. A rule can never execute anything by itself - proposals
+# always wait for your approval through the normal permission path.
+events:
+  enabled: true
+  presence_bridge: true
+  bus:
+    enabled: true
+    # Identical repeats inside this window are suppressed rather than stored.
+    debounce_seconds: 30
+    # Minimum seconds between accepted events with the same dedupe key, even
+    # when the value changed. Stops a sensor oscillating around a threshold.
+    cooldown_seconds: 0
+    min_severity: debug
+    max_events: 5000
+    per_kind:
+      low_battery:
+        cooldown_seconds: 900
+      high_temperature:
+        cooldown_seconds: 600
+      sensor_reading:
+        debounce_seconds: 60
+  reactions:
+    enabled: true
+    # Seeds three notify-only starter rules on first run.
+    builtin_rules: true
+    default_cooldown_seconds: 900
+    max_reactions_per_event: 8
+  notifications:
+    enabled: true
+    min_severity: info
+    max_notifications: 1000
+
+# v0.4.1 device drivers. Every driver is opt-in and disabled by default.
+# Discovering a device never authorizes connecting to it or writing to it, and
+# writes stay behind the permission gate regardless of what is set here.
+drivers:
+  enabled: true
+  poll_interval_seconds: 30
+  ble:
+    enabled: false
+    # Requires the optional 'bleak' package. Only addresses listed here may be
+    # read; DaQauntum never pairs with an unknown device.
+    adapter: null
+    scan_seconds: 6
+    allow_devices: []
+    # address -> {name, characteristics: {label: {uuid, mode: read|notify}}}
+    profiles: {}
+    allow_writes: false
+  serial:
+    enabled: false
+    # Requires the optional 'pyserial' package. Only ports listed here are
+    # opened. Read-only unless allow_writes is explicitly enabled.
+    allow_ports: []
+    baudrate: 9600
+    timeout_seconds: 2
+    parser: line          # line | json | csv | keyvalue
+    allow_writes: false
+  mqtt:
+    enabled: false
+    # Persistent subscription with a retained-state cache. Publishing stays a
+    # separate permission-gated tool (mqtt_publish).
+    host: 127.0.0.1
+    port: 1883
+    topics: []
+    client_id: daqauntum
+    keepalive_seconds: 60
+    max_cached_topics: 200
+  home_assistant:
+    enabled: false
+    # Uses the credentials already configured under integrations.home_assistant.
+    # Service calls remain permission-gated; this only ingests state changes.
+    poll_interval_seconds: 60
+    entities: []
+    max_entities: 200
+
 demo:
   enabled: true
   speak_steps: true

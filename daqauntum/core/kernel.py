@@ -31,6 +31,7 @@ from integrations import IntegrationManager
 from perception import PerceptionManager
 from computer import ComputerController
 from presence import PresenceManager
+from events import EventSystem
 from demo import DemoManager
 
 
@@ -65,6 +66,17 @@ class DaQauntumKernel:
             computer_controller=self.computer,
             presence_manager=self.presence,
         )
+        # The event system is constructed after the tool registry and permission
+        # manager so a proposed reaction can be checked against the real gate.
+        # It receives them to *evaluate* authority, never to execute.
+        self.events = EventSystem(
+            self.memory,
+            config=self.config.get("events", {}),
+            tool_registry=self.tools,
+            permission_manager=self.permissions,
+        )
+        if self.config.get("events", {}).get("presence_bridge", True):
+            self.presence.event_sink = self.events.ingest_presence_sample
         self.brain = CognitiveModelRouter(self.config["models"])
         cognition = self.config.get("cognition", {})
         self.planner = Planner(self.brain, self.tools.descriptions(), bool(cognition.get("planner_enabled", True)))
@@ -136,6 +148,7 @@ class DaQauntumKernel:
             "perception": self.perception.stats(),
             "computer": self.computer.status(),
             "presence": {"stats": self.presence.stats(), "latest": self.presence.latest()},
+            "events": self.events.stats(),
             "demo": self.demo.readiness(),
             "tools": [item["name"] for item in self.tools.descriptions()],
             "pending_approvals": list(self.pending),
