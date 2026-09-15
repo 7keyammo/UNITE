@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DaQauntum Universe</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body data-dq-state="idle">
+  <canvas id="starfield" aria-hidden="true"></canvas>
+  <div class="cosmic-vignette" aria-hidden="true"></div>
+  <div class="shell">
+    <aside class="rail">
+      <div class="brand-mark"><span>DQ</span></div>
+      <button class="nav active" data-view="chat" title="Chat">⌁</button>
+      <button class="nav" data-view="call" title="Call">◉</button>
+      <button class="nav" data-view="universe" title="Universe">✦</button>
+      <button class="nav" data-view="memory" title="Memory">◇</button>
+      <button class="nav" data-view="learning" title="Learning">↻</button>
+      <button class="nav" data-view="connect" title="Connected Knowledge">⌘</button>
+      <button class="nav" data-view="workspaces" title="Workspaces / Agent Studio">◈</button>
+      <button class="nav" data-view="integrations" title="Integration Hub">⧉</button>
+      <button class="nav" data-view="perception" title="Eyes + Hands">◌</button>
+      <button class="nav" data-view="presence" title="Presence / Sensors">◎</button>
+      <button class="nav" data-view="demo" title="Guided Demo">▷</button>
+      <button class="nav" data-view="system" title="System">⚙</button>
+      <div class="rail-spacer"></div>
+      <div class="online-dot" id="onlineDot" title="DaQauntum status"></div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">LOCAL-FIRST QUANTUM INTELLIGENCE</div>
+          <h1>DaQauntum <span id="versionLabel">v0.4.0</span></h1>
+        </div>
+        <div class="runtime-controls">
+          <label>COMPUTE
+            <select id="operationMode">
+              <option value="auto">AUTO</option><option value="local">LOCAL</option><option value="hybrid">HYBRID</option><option value="cloud">CLOUD</option>
+            </select>
+          </label>
+          <label>COGNITION
+            <select id="cognitionMode">
+              <option value="auto">AUTO</option><option value="realtime">REALTIME</option><option value="balanced">BALANCED</option><option value="deep">DEEP</option>
+            </select>
+          </label>
+          <label class="project-wrap">PROJECT<input id="projectInput" placeholder="No active project" /></label>
+          <button class="ghost" id="setProjectBtn">Set</button>
+          <div class="pill" id="modePill">AUTO · AUTO</div>
+        </div>
+      </header>
+
+      <section class="view active" id="view-chat">
+        <div class="workspace-grid">
+          <section class="card chat-card glass">
+            <div class="card-head"><span>CONVERSATION</span><span class="dim" id="agentLabel">agent: —</span></div>
+            <div class="quick-actions">
+              <button id="quickCallBtn" class="primary tiny">🎙 Talk</button>
+              <button id="quickDemoBtn" class="ghost tiny">▷ Guided demo</button>
+              <button id="quickSenseBtn" class="ghost tiny">◎ Sense environment</button>
+              <button id="quickCapabilitiesBtn" class="ghost tiny">✦ What can you do?</button>
+            </div>
+            <div id="chatLog" class="chat-log">
+              <div class="message assistant"><div class="who">DaQauntum</div><div class="bubble">Atom awake. I can think locally, hybrid, or through hosted modules. Talk to me.</div></div>
+            </div>
+            <div class="turn-telemetry" id="turnTelemetry"><span>idle</span><span>— ms</span></div>
+            <form id="chatForm" class="composer">
+              <textarea id="chatInput" rows="2" placeholder="Talk to DaQauntum…"></textarea>
+              <button class="primary" type="submit">Send</button>
+            </form>
+          </section>
+
+          <aside class="stack">
+            <section class="card core-card glass">
+              <div class="card-head"><span>COGNITIVE ATOM</span><span class="status-dot"></span></div>
+              <div class="atom-stage mini">
+                <div class="atom-core" id="coreAtom">
+                  <div class="nucleus"><span>DQ</span></div>
+                  <div class="orbit orbit-a"><i></i></div>
+                  <div class="orbit orbit-b"><i></i></div>
+                  <div class="orbit orbit-c"><i></i></div>
+                </div>
+              </div>
+              <div class="evolution-line"><span id="atomLevel">LEVEL 1</span><span id="atomXp">0 XP</span></div>
+              <div class="brain-grid">
+                <div><small>PLANNER</small><strong id="plannerModel">—</strong></div>
+                <div><small>EXECUTOR</small><strong id="executorModel">—</strong></div>
+                <div><small>CRITIC</small><strong id="criticModel">—</strong></div>
+                <div><small>PERMISSION</small><strong id="permissionLevel">—</strong></div>
+              </div>
+            </section>
+            <section class="card glass">
+              <div class="card-head"><span>PENDING APPROVALS</span><span id="approvalCount" class="badge">0</span></div>
+              <div id="approvalList" class="list empty">No pending actions.</div>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view" id="view-call">
+        <div class="call-layout">
+          <section class="card call-stage glass">
+            <div class="card-head"><span>CALL DAQAUNTUM</span><span id="callStatus" class="call-status">OFFLINE</span></div>
+            <div class="call-hero">
+              <div class="atom-stage call-atom-stage">
+                <div class="atom-core large" id="callAtom">
+                  <div class="nucleus"><span>DQ</span></div>
+                  <div class="orbit orbit-a"><i></i></div><div class="orbit orbit-b"><i></i></div><div class="orbit orbit-c"><i></i></div>
+                </div>
+              </div>
+              <h2 id="callHeading">Ready to talk</h2>
+              <p id="speechSupport" class="dim">Checking voice engines…</p><p id="livePartial" class="live-partial"></p>
+              <div class="voice-status-row"><span class="voice-chip" id="sttChip">STT: checking</span><span class="voice-chip" id="ttsChip">TTS: checking</span><span class="voice-chip" id="wakeChip">WAKE: off</span><span class="voice-chip" id="duplexChip">DUPLEX: checking</span></div>
+              <div class="call-controls"><button id="startCallBtn" class="primary big">Start Call</button><button id="talkBtn" class="mic big" disabled>🎙 Talk</button><button id="endCallBtn" class="danger big" disabled>End & Process</button></div>
+              <div class="speak-row voice-options">
+                <label><input type="checkbox" id="autoSpeak" checked /> Speak replies</label>
+                <label><input type="checkbox" id="handsFree" checked /> Hands-free</label>
+                <label><input type="checkbox" id="bargeIn" checked /> Barge-in</label>
+                <label><input type="checkbox" id="preferLocalVoice" checked /> Local voice</label>
+                <label><input type="checkbox" id="fullDuplex" checked /> Full duplex</label>
+                <label class="turn-pause">Turn pause
+                  <select id="turnPause"><option value="520">FAST</option><option value="700" selected>NATURAL</option><option value="1050">RELAXED</option></select>
+                </label>
+                <label><input type="checkbox" id="autoProcessTasks" checked /> Process tasks after call</label>
+                <label><input type="checkbox" id="wakeEnabled" /> Wake “DaQauntum”</label>
+              </div>
+              <form id="callTextForm" class="call-fallback"><input id="callTextInput" placeholder="Or type what you want to say…" disabled /><button class="ghost" type="submit" disabled id="callTextSend">Send turn</button></form>
+            </div>
+            <div class="transcript" id="callTranscript"><div class="empty">Start a call to begin a local transcript.</div></div>
+          </section>
+          <aside class="call-side">
+            <section class="card glass"><div class="card-head"><span>LIVE NOTES</span><span class="badge" id="noteCount">0</span></div><div id="liveNotes" class="list empty">Notes will appear as you talk.</div></section>
+            <section class="card task-card glass"><div class="card-head"><span>ACTION ITEMS</span><button id="runAllTasksBtn" class="tiny" disabled>Run all</button></div><div id="taskList" class="list empty">Tasks from the call will appear here.</div></section>
+            <section class="card summary-card glass"><div class="card-head"><span>CALL SUMMARY</span></div><div id="callSummary" class="summary empty">End the call to consolidate notes, decisions, and follow-ups.</div></section>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view" id="view-universe">
+        <div class="universe-layout">
+          <section class="card universe-card glass">
+            <div class="card-head"><span>DAQAUNTUM UNIVERSE</span><span id="universeNetwork" class="dim">LOCAL UNIVERSE</span></div>
+            <canvas id="universeCanvas"></canvas>
+            <div class="universe-hud">
+              <div><small>ATOM ID</small><strong id="universeAtomId">—</strong></div>
+              <div><small>EVOLUTION</small><strong id="universeLevel">LEVEL 1</strong></div>
+              <div><small>ENERGY</small><strong id="universeEnergy">0%</strong></div>
+              <div><small>MOLECULES</small><strong id="universeMolecules">0</strong></div>
+            </div>
+          </section>
+          <aside class="universe-side">
+            <section class="card glass"><div class="card-head"><span>MODULE SHELLS</span></div><div id="moduleToggles" class="module-grid"></div></section>
+            <section class="card glass"><div class="card-head"><span>PROJECT MOLECULES</span></div><div id="moleculeList" class="list empty">No project molecules yet.</div></section>
+            <section class="card glass"><div class="card-head"><span>PEER ATOMS</span></div><div id="peerList" class="list empty">Peer networking is not enabled yet. This release keeps your universe local.</div></section>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view" id="view-memory">
+        <div class="card full-card glass"><div class="card-head"><span>STRUCTURED MEMORY</span><div class="search-inline"><input id="memoryQuery" placeholder="Search memory…"/><button id="memorySearchBtn" class="ghost">Search</button></div></div><div id="memoryStats" class="metric-row"></div><div id="memoryList" class="memory-list"><div class="empty">Search or open this view to inspect recent memories.</div></div></div>
+      </section>
+
+      <section class="view" id="view-learning">
+        <div class="system-grid">
+          <section class="card glass"><div class="card-head"><span>AUTONOMOUS LEARNING</span><div><button id="runLearningBtn" class="primary">Learn now</button> <button id="eveningReportBtn" class="ghost">Build evening report</button></div></div><div id="learningStats" class="metric-row"></div><div class="summary" id="learningLatest">Loading…</div></section>
+          <section class="card glass"><div class="card-head"><span>NATIVE MODEL SEED</span><button id="exportDatasetBtn" class="ghost">Export dataset</button></div><div id="nativeModelStats" class="summary">Loading…</div></section>
+          <section class="card glass full-card"><div class="card-head"><span>LEARNING REPORTS</span><span class="dim">07:00 learn · 19:00 digest</span></div><div id="learningReports" class="list">Loading…</div></section>
+        </div>
+      </section>
+
+
+      <section class="view" id="view-connect">
+        <div class="system-grid">
+          <section class="card glass full-card">
+            <div class="card-head"><span>CONNECTED KNOWLEDGE</span><div><button id="syncConnectorsBtn" class="primary">Sync now</button></div></div>
+            <div id="connectorStats" class="metric-row"></div>
+            <p class="dim">Explicit connections only. Folder connectors grant read access only to the selected folder. New material becomes hashed Source Intelligence evidence before autonomous learning can use it.</p>
+          </section>
+          <section class="card glass">
+            <div class="card-head"><span>CONNECT A FOLDER</span><span class="dim">computer / synced cloud folder</span></div>
+            <div class="connector-form">
+              <input id="folderPath" placeholder="/home/you/Documents or ~/Library/CloudStorage/..." />
+              <input id="folderName" placeholder="Name (optional)" />
+              <input id="folderProject" placeholder="Project (optional)" />
+              <label><input type="checkbox" id="folderRecursive" checked /> Include subfolders</label>
+              <label><input type="checkbox" id="folderLearn" checked /> Learn from this source</label>
+              <button id="addFolderBtn" class="ghost">Connect folder</button>
+            </div>
+            <p class="task-meta">Works with normal folders and locally synced iCloud Drive, Google Drive, Dropbox, OneDrive, NAS mounts, etc. DaQauntum does not receive blanket filesystem access.</p>
+          </section>
+          <section class="card glass">
+            <div class="card-head"><span>CONNECT THE WEB</span><span class="dim">explicit opt-in</span></div>
+            <div class="connector-form">
+              <select id="webConnectorType"><option value="web_url">WEB PAGE</option><option value="rss">RSS / ATOM FEED</option></select>
+              <input id="webUrl" placeholder="https://..." />
+              <input id="webName" placeholder="Name (optional)" />
+              <input id="webProject" placeholder="Project (optional)" />
+              <label><input type="checkbox" id="webLearn" checked /> Learn from this source</label>
+              <button id="addWebBtn" class="ghost">Connect web source</button>
+            </div>
+            <p class="task-meta">Network fetching remains blocked unless <code>sources.allow_url_fetch: true</code> is explicitly enabled. Private/local network targets stay blocked by default.</p>
+          </section>
+          <section class="card glass">
+            <div class="card-head"><span>APIFY DATASET</span><span class="dim">structured crawl results</span></div>
+            <div class="connector-form">
+              <input id="apifyDatasetId" placeholder="Dataset ID" />
+              <input id="apifyName" placeholder="Name (optional)" />
+              <input id="apifyProject" placeholder="Project (optional)" />
+              <div class="row"><input id="apifyTokenEnv" value="APIFY_TOKEN" placeholder="Token environment variable" /><input id="apifyLimit" type="number" value="100" min="1" max="1000" /></div>
+              <label><input type="checkbox" id="apifyLearn" checked /> Learn from this source</label>
+              <button id="addApifyBtn" class="ghost">Connect Apify dataset</button>
+            </div>
+            <p class="task-meta">DaQauntum stores only the token environment-variable name, never the secret. Requires <code>sources.allow_url_fetch: true</code> to synchronize.</p>
+          </section>
+          <section class="card glass">
+            <div class="card-head"><span>PHONE / TABLET BRIDGE</span><button id="rotatePairBtn" class="tiny">Rotate code</button></div>
+            <div id="bridgeStatus" class="summary">Device Bridge is not running.</div>
+            <p class="task-meta">Start with <code>python daqauntum_gui.py --device-bridge</code>. The main control GUI stays localhost-only; the separate paired bridge exposes only file/note ingestion on your LAN.</p>
+          </section>
+          <section class="card glass full-card">
+            <div class="card-head"><span>CONNECTED SOURCES</span><span class="dim" id="connectorSyncHint">periodic sync ready</span></div>
+            <div id="connectorList" class="list empty">No connected sources yet.</div>
+          </section>
+        </div>
+      </section>
+
+
+      <section class="view" id="view-workspaces">
+        <div class="workspace-studio">
+          <section class="card glass workspace-builder">
+            <div class="card-head"><span>BUILD A DAQAUNTUM OS</span><span class="dim">one job · portable context</span></div>
+            <div class="connector-form">
+              <input id="wsName" placeholder="Workspace name (e.g. Physics Curriculum OS)" />
+              <textarea id="wsFocus" rows="3" placeholder="What is the ONE job this workspace should do?"></textarea>
+              <textarea id="wsDone" rows="3" placeholder="What does done look like?"></textarea>
+              <select id="wsStage"><option value="manual">MANUAL</option><option value="identify">IDENTIFY</option><option value="semi_automate">SEMI-AUTOMATE</option><option value="expand">EXPAND</option><option value="handoff">HANDOFF</option></select>
+              <button id="createWorkspaceBtn" class="primary">Build workspace</button>
+            </div>
+            <p class="task-meta">Creates editable Focus / Resources / Access / Make / Engine files. Start manual; earn automation through review.</p>
+          </section>
+
+          <section class="card glass workspace-list-card">
+            <div class="card-head"><span>WORKSPACES</span><button id="exportObsidianBtn" class="ghost tiny">Export Obsidian vault</button></div>
+            <div id="workspaceStats" class="metric-row"></div>
+            <div id="workspaceList" class="list empty">No workspaces yet.</div>
+          </section>
+
+          <section class="card glass workspace-detail-card">
+            <div class="card-head"><span>ACTIVE WORKSPACE</span><span id="activeWorkspaceBadge" class="dim">none</span></div>
+            <div id="workspaceDetail" class="summary empty">Select or build a workspace.</div>
+            <div class="studio-grid">
+              <div>
+                <h3>Skill Studio</h3>
+                <input id="skillName" placeholder="Skill name (optional)" />
+                <textarea id="skillDescription" rows="3" placeholder="Describe a repeatable job in plain language…"></textarea>
+                <button id="createSkillBtn" class="ghost">Create skill</button>
+              </div>
+              <div>
+                <h3>Agent Studio</h3>
+                <input id="agentName" placeholder="Agent name (optional)" />
+                <textarea id="agentDescription" rows="3" placeholder="Describe the specialist you want…"></textarea>
+                <button id="createAgentBtn" class="ghost">Create agent</button>
+              </div>
+              <div>
+                <h3>Access Studio</h3>
+                <input id="connectionName" placeholder="Connection name" />
+                <select id="connectionKind"><option value="mcp">MCP DECLARATION</option><option value="note">NOTE / MANUAL ACCESS</option><option value="other">OTHER DECLARATION</option></select>
+                <input id="connectionEnv" placeholder="Secret env names, e.g. API_TOKEN,CRM_KEY" />
+                <button id="createConnectionBtn" class="ghost">Declare connection</button>
+                <p class="task-meta">Declarations never execute by themselves; secrets remain environment references.</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="card glass workbench-card">
+            <div class="card-head"><span>PARALLEL AGENT WORKBENCH</span><span id="workbenchStatus" class="dim">idle</span></div>
+            <textarea id="workbenchPrompt" rows="4" placeholder="Give the selected agents the same problem and compare their drafts…"></textarea>
+            <div id="agentSelector" class="agent-selector empty">Create an agent first.</div>
+            <button id="runParallelBtn" class="primary">Run selected agents</button>
+            <div id="workbenchJobs" class="agent-panes empty">No agent jobs yet.</div>
+          </section>
+        </div>
+      </section>
+
+
+      <section class="view" id="view-integrations">
+        <div class="system-grid">
+          <section class="card glass full-card">
+            <div class="card-head"><span>INTEGRATION HUB</span><button id="refreshIntegrationsBtn" class="primary">Refresh</button></div>
+            <div id="integrationStats" class="metric-row"></div>
+            <p class="dim">DaQauntum remains the policy/memory brain. These external systems are optional capability modules and cannot bypass the approval gate.</p>
+          </section>
+          <section class="card glass full-card">
+            <div class="card-head"><span>CAPABILITY MODULES</span><span class="dim">install independently · upgrade independently</span></div>
+            <div id="integrationList" class="list">Loading…</div>
+          </section>
+          <section class="card glass">
+            <div class="card-head"><span>SECURE REMOTE ACCESS</span><span class="dim">Tailscale Serve</span></div>
+            <p>Keep the DaQauntum server bound to localhost and let Tailscale securely proxy it to your tailnet.</p>
+            <button id="previewTailscaleBtn" class="ghost">Preview Serve command</button>
+            <button id="enableTailscaleBtn" class="primary">Prepare secure access</button>
+            <div id="tailscaleResult" class="summary empty">No remote-access change has been requested.</div>
+          </section>
+          <section class="card glass">
+            <div class="card-head"><span>SCALABLE MEMORY</span><span class="dim">PostgreSQL + pgvector</span></div>
+            <p>SQLite remains the default local brain. PostgreSQL/pgvector can become a scalable mirror/backend when configured.</p>
+            <button id="bootstrapPgBtn" class="ghost">Prepare pgvector schema</button>
+            <div id="pgResult" class="summary empty">Set DAQAUNTUM_POSTGRES_DSN before enabling.</div>
+          </section>
+          <section class="card glass full-card">
+            <div class="card-head"><span>PERSISTENT SERVER</span><span class="dim">always-on core</span></div>
+            <div class="summary">Run <code>python daqauntum_server.py</code> to keep the brain alive with no browser open. Then use <code>python daqauntum_gui.py --client-only</code> to reopen the interface. Install the user service with <code>python scripts/install_server_service.py</code>.</div>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="view-perception">
+        <div class="system-grid perception-grid">
+          <section class="card glass full-card">
+            <div class="card-head"><span>EYES + HANDS</span><span id="perceptionStatus" class="dim">permission-gated perception</span></div>
+            <div id="perceptionMetrics" class="metric-row"></div>
+            <p class="dim">Screen and camera access are browser/OS opt-in. Captures are stored locally. Visual inference follows the LOCAL / HYBRID / CLOUD policy above.</p>
+          </section>
+          <section class="card glass">
+            <div class="card-head"><span>VISUAL PERCEPTION</span><span class="dim">eyes</span></div>
+            <div class="connector-actions perception-actions">
+              <button id="captureScreenBtn" class="primary">Capture screen</button>
+              <button id="watchScreenBtn" class="ghost">Start screen context</button>
+              <button id="captureCameraBtn" class="ghost">Camera snapshot</button>
+            </div>
+            <div class="perception-preview"><img id="perceptionPreview" alt="Latest DaQauntum visual frame" /></div>
+            <textarea id="visionPrompt" rows="3" placeholder="What should DaQauntum look for in this frame?">Describe what is visible and identify anything useful for my current task.</textarea>
+            <button id="analyzeFrameBtn" class="primary">Analyze latest frame</button>
+            <div id="visionResult" class="summary empty">Capture a screen or camera frame first.</div>
+          </section>
+          <section class="card glass">
+            <div class="card-head"><span>COMPUTER CONTROL</span><span class="dim">hands</span></div>
+            <label>AUTONOMY
+              <select id="computerAutonomy">
+                <option value="observe">OBSERVE</option><option value="assist">ASSIST</option><option value="execute">EXECUTE</option><option value="autonomous">AUTONOMOUS</option>
+              </select>
+            </label>
+            <p class="task-meta">Autonomy never overrides DaQauntum's L0-L4 permission system. Execute still pauses for approval at L2/L3.</p>
+            <textarea id="computerRequest" rows="5" placeholder="Example: inspect the current page and tell me what button I should press next…"></textarea>
+            <div class="connector-actions">
+              <button id="computerObserveBtn" class="ghost">Observe only</button>
+              <button id="computerActionBtn" class="primary">Prepare / execute action</button>
+            </div>
+            <div id="computerResult" class="summary empty">Open Interpreter computer-use becomes the execution arm when installed.</div>
+          </section>
+          <section class="card glass full-card">
+            <div class="card-head"><span>RECENT VISUAL FRAMES</span><span class="dim">local provenance</span></div>
+            <div id="perceptionFrames" class="perception-frame-list empty">No visual frames captured yet.</div>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="view-presence">
+        <div class="system-grid">
+          <section class="card glass full-card">
+            <div class="card-head"><span>PRESENCE LAYER</span><div><button id="refreshPresenceBtn" class="primary">Refresh awareness</button></div></div>
+            <div id="presenceMetrics" class="metric-row"></div>
+            <p class="dim">Passive awareness observes approved local signals without radio scanning. Wi-Fi, Bluetooth, and mDNS discovery below are explicit user-triggered scans.</p>
+          </section>
+          <section class="card glass">
+            <div class="card-head"><span>AMBIENT SYSTEM</span><span class="dim">passive</span></div>
+            <div id="ambientStatus" class="summary">Loading…</div>
+          </section>
+          <section class="card glass">
+            <div class="card-head"><span>WI-FI</span><span class="dim">explicit scan</span></div>
+            <button id="wifiScanBtn" class="ghost">Scan nearby Wi-Fi</button>
+            <div id="wifiResults" class="list empty">No Wi-Fi scan run yet.</div>
+            <div class="connector-form"><input id="wifiProfile" placeholder="Saved OS Wi-Fi profile name" /><button id="wifiConnectBtn" class="primary">Prepare connect</button></div>
+          </section>
+          <section class="card glass">
+            <div class="card-head"><span>BLUETOOTH</span><span class="dim">explicit scan</span></div>
+            <button id="bluetoothScanBtn" class="ghost">Scan nearby Bluetooth</button>
+            <div id="bluetoothResults" class="list empty">No Bluetooth scan run yet.</div>
+            <div class="connector-form"><input id="bluetoothAddress" placeholder="Paired MAC address" /><button id="bluetoothConnectBtn" class="primary">Prepare connect</button></div>
+          </section>
+          <section class="card glass">
+            <div class="card-head"><span>LOCAL SERVICES</span><span class="dim">Bonjour / mDNS</span></div>
+            <button id="serviceScanBtn" class="ghost">Discover local services</button>
+            <div id="serviceResults" class="list empty">No service discovery run yet.</div>
+          </section>
+          <section class="card glass">
+            <div class="card-head"><span>SENSOR / DEVICE BUS</span><span class="dim">local read-only</span></div>
+            <div id="sensorStatus" class="summary">Loading…</div>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="view-demo">
+        <div class="demo-layout">
+          <section class="card glass demo-main">
+            <div class="card-head"><span>DAQAUNTUM v0.4.0 GUIDED DEMO</span><span id="demoProgress" class="dim">not started</span></div>
+            <div class="atom-stage call-atom-stage"><div class="atom-core large"><div class="nucleus"><span>DQ</span></div><div class="orbit orbit-a"><i></i></div><div class="orbit orbit-b"><i></i></div><div class="orbit orbit-c"><i></i></div></div></div>
+            <h2 id="demoTitle">Bring DaQauntum to life</h2>
+            <div id="demoText" class="summary">Start the guided demo and DaQauntum will walk you through its brain, voice, awareness, eyes, hands, connections, and autonomous learning.</div>
+            <div class="connector-actions">
+              <button id="startDemoBtn" class="primary">Start demo</button>
+              <button id="speakDemoBtn" class="ghost">Speak this step</button>
+              <button id="prevDemoBtn" class="ghost">Previous</button>
+              <button id="nextDemoBtn" class="primary">Next</button>
+            </div>
+          </section>
+          <aside class="stack">
+            <section class="card glass"><div class="card-head"><span>READINESS</span></div><div id="demoReadiness" class="summary">Loading…</div></section>
+            <section class="card glass"><div class="card-head"><span>DEMO CHECKLIST</span></div><div id="demoChecklist" class="list">Loading…</div></section>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view" id="view-system">
+        <div class="system-grid">
+          <section class="card glass"><div class="card-head"><span>SYSTEM STATUS</span></div><pre id="systemStatus">Loading…</pre></section>
+          <section class="card glass"><div class="card-head"><span>MODEL MATRIX</span></div><div id="modelMatrix" class="list">Loading…</div></section>
+          <section class="card glass"><div class="card-head"><span>CAPABILITIES</span></div><div id="toolList" class="chips"></div></section>
+          <section class="card glass"><div class="card-head"><span>RECENT CALLS</span></div><div id="recentCalls" class="list">Loading…</div></section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <div id="toast" class="toast"></div>
+  <script src="/universe.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

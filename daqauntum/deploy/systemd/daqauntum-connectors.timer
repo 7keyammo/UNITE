@@ -1,0 +1,12 @@
+[Unit]
+Description=Synchronize DaQauntum connected sources every 15 minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=15min
+Persistent=true
+AccuracySec=1min
+Unit=daqauntum-connectors.service
+
+[Install]
+WantedBy=timers.target

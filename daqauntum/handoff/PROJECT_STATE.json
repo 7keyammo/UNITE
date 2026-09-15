@@ -1,0 +1,44 @@
+{
+  "project": "DaQauntum",
+  "version": "0.4.0",
+  "codename": "Presence + Guided Demo",
+  "handoff_type": "complete_repository",
+  "status": "working_prototype",
+  "next_milestone": "0.4.1 Device Drivers + Event Reactions",
+  "immediate_priority": "P0 stabilize the real Debian host before expanding features",
+  "entrypoints": {
+    "gui": "python daqauntum_gui.py",
+    "demo": "python daqauntum_gui.py --demo",
+    "server": "python daqauntum_server.py",
+    "cli": "python daqauntum.py"
+  },
+  "default_ports": {
+    "gui_http": 8765,
+    "realtime_websocket": 8766,
+    "device_bridge": 8767
+  },
+  "authoritative_instructions": [
+    "CLAUDE.md",
+    "AGENTS.md",
+    "TASKS.md",
+    "docs/HANDOFF.md",
+    "docs/SECURITY_INVARIANTS.md",
+    "docs/REALITY_MAP.md"
+  ],
+  "release_gate": [
+    "complete standalone repository",
+    "SHA-256 manifest passes",
+    "relevant regression tests pass",
+    "freshly extracted final archive is retested",
+    "runtime/private data excluded"
+  ],
+  "critical_principles": [
+    "model intelligence is not authority",
+    "state-changing actions use deterministic permissions",
+    "local/privacy policy cannot silently cloud-fallback",
+    "sensing is separate from scanning/connecting/acting",
+    "retrieval similarity is not evidence",
+    "autonomous learning does not change model weights",
+    "external ecosystems stay behind optional adapters"
+  ]
+}

@@ -1,0 +1,7 @@
+# Optional fully-local speech stack for DaQauntum v0.4.0.
+# Install this in addition to requirements.txt when you want local Whisper transcription.
+faster-whisper>=1.1
+
+# Optional local neural TTS. System TTS (macOS say / Linux espeak / Windows System.Speech)
+# works without this package when available. Uncomment/install separately if desired:
+# piper-tts>=1.2

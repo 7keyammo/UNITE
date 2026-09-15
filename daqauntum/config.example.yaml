@@ -1,0 +1,345 @@
+name: DaQauntum
+version: 0.4.0
+permission_level: 2
+
+models:
+  fallback_to_mock: true
+
+  providers:
+    claude_cli:
+      model: sonnet
+      models:
+        fast: sonnet
+        balanced: sonnet
+        strong: opus
+      binary: claude
+      timeout_seconds: 120
+
+    openai:
+      model: gpt-5.6-luna
+      models:
+        fast: gpt-5.6-luna
+        balanced: gpt-5.6-terra
+        strong: gpt-5.6-sol
+
+    anthropic:
+      model: claude-sonnet-5
+      models:
+        fast: claude-haiku-4-5-20251001
+        balanced: claude-sonnet-5
+        strong: claude-opus-5
+      base_url: https://api.anthropic.com
+      max_tokens: 4096
+      timeout_seconds: 120
+
+    ollama:
+      model: gemma3
+      models:
+        fast: gemma3
+        balanced: gemma3
+        strong: gemma3
+      base_url: http://localhost:11434
+      timeout_seconds: 120
+
+    mock:
+      model: daqauntum-mock
+
+  roles:
+    planner:
+      provider: auto
+      preference: [ollama, claude_cli, openai, anthropic, mock]
+
+    executor:
+      provider: auto
+      preference: [claude_cli, openai, anthropic, ollama, mock]
+
+    critic:
+      provider: auto
+      preference: [ollama, claude_cli, anthropic, openai, mock]
+
+# v0.2.3 deterministic routing policy. It chooses inference resources, not permissions.
+model_policy:
+  enabled: true
+  local_only_for_sensitive: true
+  second_opinion_enabled: true
+  second_opinion_complexity: 4
+  confidence_threshold: 0.65
+  hosted_providers: [claude_cli, openai, anthropic]
+  local_providers: [ollama, mock]
+
+cognition:
+  planner_enabled: true
+  critic_enabled: true
+  max_revision_rounds: 1
+
+# v0.4.0 runtime modes. Locality never overrides privacy policy or tool permissions.
+runtime:
+  operation_mode: auto   # auto | local | hybrid | cloud
+  cognition_mode: auto   # auto | realtime | balanced | deep
+  modules:
+    memory: true
+    knowledge: true
+    sources: true
+    planner: true
+    critic: true
+    voice: true
+    streaming: true
+    barge_in: true
+    duplex: true
+    learning: true
+    connectors: true
+    workspaces: true
+    workbench: true
+    perception: true
+    computer: true
+    presence: true
+    demo: true
+
+# v0.4.0 Eyes + Hands. Screen/camera capture is always explicit browser/OS opt-in.
+perception:
+  enabled: true
+  frames_dir: data/perception/frames
+  max_frame_bytes: 8000000
+  # Set this to a multimodal Ollama model to keep image understanding fully local.
+  # Example values depend on what you have installed locally.
+  ollama_model: ""
+  ollama_base_url: http://127.0.0.1:11434
+  openai_model: gpt-5.6-sol
+  anthropic_model: claude-sonnet-5
+  timeout_seconds: 90
+
+computer:
+  enabled: true
+  # observe | assist | execute | autonomous. DaQauntum L0-L4 permissions still win.
+  autonomy: observe
+
+memory:
+  db_path: data/daqauntum.db
+  max_recent_messages: 12
+  structured_enabled: true
+  structured_retrieve_limit: 6
+  auto_episode: true
+  auto_decisions: true
+  auto_procedures: true
+  auto_semantic_cues: true
+  training_confidence_threshold: 0.85
+
+  # v0.2.5 Memory Intelligence - entirely local/deterministic by default.
+  intelligence_enabled: true
+  embedding_dimensions: 256
+  semantic_weight: 2.2
+  lexical_weight: 1.5
+  salience_weight: 1.1
+  recency_weight: 0.7
+  consolidation_similarity: 0.50
+  consolidation_min_cluster: 3
+  contradiction_similarity: 0.58
+  auto_maintain_every: 20
+
+knowledge_graph:
+  enabled: true
+  context_limit: 5
+  backfill_on_start: true
+  max_backfill: 10000
+
+# Source Intelligence. Source indexing is local by default.
+sources:
+  enabled: true
+  project_root: .
+  max_file_bytes: 20000000
+  chunk_chars: 1800
+  chunk_overlap: 200
+  context_limit: 4
+  allow_external_paths: false
+  allow_url_fetch: false
+  allow_private_networks: false
+  max_url_bytes: 5000000
+  user_agent: DaQauntum/0.4.0 Presence + Guided Demo
+
+tools:
+  project_root: .
+  notes_dir: data/notes
+
+logging:
+  level: INFO
+
+# v0.4.0 local GUI. The default bind is loopback-only for safety.
+gui:
+  host: 127.0.0.1
+  port: 8765
+  websocket_port: 8766
+  device_bridge_port: 8767
+  open_browser: true
+
+
+# v0.4.0 Connected Knowledge. Folder access is scoped per connector; this does not enable
+# arbitrary filesystem access. Synced cloud folders (iCloud/Drive/Dropbox/OneDrive) can be
+# connected exactly like any other local folder.
+connectors:
+  enabled: true
+  device_inbox_dir: data/device_inbox
+  connected_data_dir: data/connected
+  max_files_per_sync: 500
+  max_feed_items: 20
+  sync_interval_minutes: 15
+  ignore_dirs: [.git, .venv, node_modules, __pycache__]
+
+# Optional phone/tablet bridge. Disabled by default because it binds to your LAN. Start the
+# GUI with --device-bridge to enable it for the current process and use the rotating pairing code.
+device_bridge:
+  enabled: false
+  host: 0.0.0.0
+  port: 8767
+  max_upload_bytes: 20000000
+  pairing_ttl_seconds: 900
+  session_ttl_seconds: 86400
+
+# Local call sessions. Browser speech recognition/TTS provides the voice surface.
+call:
+  calls_dir: data/calls
+  max_transcript_chars: 24000
+  save_transcripts: true
+  auto_run_tasks: false
+
+# v0.4.0 Local Voice Engine. Local STT/TTS are optional and never use hosted speech APIs.
+voice:
+  prefer_local: true
+  max_audio_bytes: 8000000
+  max_speak_chars: 4000
+
+  stt:
+    backend: auto  # auto | faster_whisper | whisper_cpp | none
+    faster_whisper:
+      model: base.en
+      device: cpu
+      compute_type: int8
+      language: en
+      beam_size: 3
+      realtime_beam_size: 1
+      vad_filter: true
+      allow_model_download: false
+      download_root: data/models/whisper
+    whisper_cpp:
+      binary: whisper-cli
+      model: ""  # path to ggml model, e.g. data/models/ggml-base.en.bin
+      timeout_seconds: 120
+
+  tts:
+    backend: auto  # auto | piper | system | none
+    system:
+      voice: ""
+      timeout_seconds: 90
+    piper:
+      binary: piper
+      model: ""  # local .onnx path, or model name if downloads are explicitly allowed
+      allow_model_download: false
+      cuda: false
+      timeout_seconds: 120
+
+  wake:
+    enabled: false
+    phrase: daqauntum
+
+# v0.4.0 conversational realtime tuning. These settings affect turn-taking only, never permissions.
+realtime:
+  streaming: true
+  barge_in: true
+  voice_activity:
+    rms_threshold: 0.018
+    silence_ms: 700
+    min_turn_ms: 500
+    max_turn_ms: 30000
+  tts_sentence_chars: 170
+
+# v0.4.0 persistent full-duplex WebSocket session.
+full_duplex:
+  enabled: true
+  partial_stt_enabled: true
+  partial_stt_interval_ms: 900
+  partial_stt_min_ms: 650
+  keep_recent_sessions: 32
+  max_audio_bytes: 8000000
+
+# v0.4.0 autonomous learning. The scheduler runs separately from the GUI.
+learning:
+  enabled: true
+  project_root: .
+  reports_dir: data/learning/reports
+  outbox_dir: data/learning/outbox
+  operation_mode: auto  # auto | local | hybrid | cloud
+  morning_hour: 7
+  evening_hour: 19
+  auto_sync_connected_sources: true
+
+# Native-model seed corpus. v0.4.0 exports audited traces only; it never changes weights.
+native_model:
+  dataset_dir: data/native_model/datasets
+  fine_tuning_enabled: false
+
+# v0.4.0 FRAME-inspired portable workspaces and parallel agent workbench.
+workspaces:
+  enabled: true
+  root: data/workspaces
+  obsidian_root: data/obsidian/DaQauntum
+  max_parallel_agents: 4
+  default_stage: manual
+
+# v0.4.0 Integration Runtime. All bridges are optional. Secrets remain in environment variables.
+integrations:
+  enabled: true
+  open_interpreter:
+    enabled: true
+    binary: interpreter
+  langgraph:
+    enabled: true
+  flux:
+    enabled: true
+    url_env: FLUX_MCP_URL
+    mcp_url: ""
+  home_assistant:
+    enabled: true
+    url_env: HOME_ASSISTANT_URL
+    token_env: HOME_ASSISTANT_TOKEN
+    language: en
+    timeout_seconds: 20
+  postgres_pgvector:
+    enabled: true
+    dsn_env: DAQAUNTUM_POSTGRES_DSN
+    dsn: ""
+    timeout_seconds: 4
+  tailscale:
+    enabled: true
+    binary: tailscale
+  obsidian:
+    enabled: true
+    vault_path: data/obsidian/DaQauntum
+  mqtt:
+    enabled: true
+    host_env: MQTT_HOST
+    port_env: MQTT_PORT
+    username_env: MQTT_USERNAME
+    password_env: MQTT_PASSWORD
+    sub_binary: mosquitto_sub
+    pub_binary: mosquitto_pub
+
+server:
+  persistent: true
+  install_user_service: true
+  prefer_tailscale_serve: true
+  public_funnel_enabled: false
+
+
+presence:
+  enabled: true
+  sample_interval_seconds: 20
+  context_always: false
+  low_battery_percent: 15
+  high_temperature_celsius: 85
+  radio_scan_timeout_seconds: 12
+  bluetooth_scan_seconds: 6
+  service_scan_timeout_seconds: 8
+
+demo:
+  enabled: true
+  speak_steps: true
+  auto_open_on_first_run: true

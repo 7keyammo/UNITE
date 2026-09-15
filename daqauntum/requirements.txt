@@ -1,0 +1,10 @@
+PyYAML>=6.0
+rich>=13.7
+openai>=1.0
+pypdf>=5.0
+
+# Persistent local realtime session transport for v0.4.0.
+websockets>=15.0
+
+# Local system/battery/sensor telemetry for v0.4.0 Presence Layer.
+psutil>=5.9

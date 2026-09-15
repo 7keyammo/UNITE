@@ -1,0 +1,11 @@
+[Unit]
+Description=Run DaQauntum autonomous learning every morning
+
+[Timer]
+OnCalendar=*-*-* 07:00:00
+Persistent=true
+AccuracySec=1min
+Unit=daqauntum-learn.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,13 @@
+[Unit]
+Description=DaQauntum autonomous daily learning
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=@ROOT@
+Environment=PYTHONPATH=@ROOT@
+ExecStart=@PYTHON@ @ROOT@/scripts/daily_learn.py --notify
+Nice=10
+
+[Install]
+WantedBy=default.target

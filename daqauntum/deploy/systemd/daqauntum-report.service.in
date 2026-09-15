@@ -1,0 +1,13 @@
+[Unit]
+Description=DaQauntum evening learning report
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=@ROOT@
+Environment=PYTHONPATH=@ROOT@
+ExecStart=@PYTHON@ @ROOT@/scripts/evening_report.py --notify
+Nice=10
+
+[Install]
+WantedBy=default.target

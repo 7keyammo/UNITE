@@ -1,0 +1,11 @@
+[Unit]
+Description=Build DaQauntum learning report every evening
+
+[Timer]
+OnCalendar=*-*-* 19:00:00
+Persistent=true
+AccuracySec=1min
+Unit=daqauntum-report.service
+
+[Install]
+WantedBy=timers.target

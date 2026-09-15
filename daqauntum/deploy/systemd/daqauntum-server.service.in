@@ -1,0 +1,15 @@
+[Unit]
+Description=DaQauntum Persistent Integration Runtime
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=__PROJECT_ROOT__
+Environment=PYTHONUNBUFFERED=1
+ExecStart=__PYTHON__ __PROJECT_ROOT__/daqauntum_server.py --config __PROJECT_ROOT__/config.yaml
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
