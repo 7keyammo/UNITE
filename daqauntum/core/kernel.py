@@ -33,6 +33,7 @@ from computer import ComputerController
 from presence import PresenceManager
 from events import EventSystem
 from drivers import DriverManager
+from identity import IdentityManager
 from demo import DemoManager
 
 
@@ -91,6 +92,9 @@ class DaQauntumKernel:
         )
         self.tools.event_system = self.events
         self.tools.driver_manager = self.drivers
+        # Device identity answers "which client is calling"; it never answers
+        # "what is DaQauntum allowed to do". That stays with self.permissions.
+        self.identity = IdentityManager(self.memory, self.config.get("identity", {}))
         self.brain = CognitiveModelRouter(self.config["models"])
         cognition = self.config.get("cognition", {})
         self.planner = Planner(self.brain, self.tools.descriptions(), bool(cognition.get("planner_enabled", True)))
@@ -164,6 +168,7 @@ class DaQauntumKernel:
             "presence": {"stats": self.presence.stats(), "latest": self.presence.latest()},
             "events": self.events.stats(),
             "drivers": self.drivers.stats(),
+            "identity": self.identity.stats(),
             "demo": self.demo.readiness(),
             "tools": [item["name"] for item in self.tools.descriptions()],
             "pending_approvals": list(self.pending),

@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
+from identity import IdentityError
+
 
 class DaQauntumHTTPServer(ThreadingHTTPServer):
     def __init__(self, server_address, handler_cls, *, kernel, web_root: Path):
@@ -15,6 +17,79 @@ class DaQauntumHTTPServer(ThreadingHTTPServer):
         self.kernel = kernel
         self.web_root = web_root
         self.daemon_threads = True
+
+
+# Which scope a remote device needs for each API surface.
+#
+# A scope controls which surface a device may reach. It never changes what
+# DaQauntum is permitted to do: every state-changing call still passes through
+# the tool registry and PermissionManager exactly as a local request does.
+#
+# Reads and writes are mapped separately and deliberately. Sharing one table
+# between them would let a GET mapping quietly authorize the POST on the same
+# prefix - a read-only phone could then create reaction rules on /api/events.
+#
+# Anything not listed needs "admin", so a newly added endpoint is closed to
+# remote devices until someone opens it on purpose.
+READ_SCOPES: tuple[tuple[str, str], ...] = (
+    ("/api/devices", "admin"),          # the device roster is sensitive even to read
+    ("/api/status", "read"),
+    ("/api/models", "read"),
+    ("/api/memory", "read"),
+    ("/api/runtime", "read"),
+    ("/api/universe", "read"),
+    ("/api/presence", "read"),
+    ("/api/perception", "read"),
+    ("/api/learning", "read"),
+    ("/api/workspaces", "read"),
+    ("/api/workspace", "read"),
+    ("/api/workbench", "read"),
+    ("/api/connectors", "read"),
+    ("/api/integrations", "read"),
+    ("/api/events", "read"),
+    ("/api/drivers", "read"),
+    ("/api/notifications", "read"),
+    ("/api/demo", "read"),
+    ("/api/calls", "chat"),
+    ("/api/call", "chat"),
+    ("/api/voice", "chat"),
+)
+
+WRITE_SCOPES: tuple[tuple[str, str], ...] = (
+    # Enrollment cannot require a token: it is how a device gets its first one.
+    # It is protected by the single-use, short-lived code and by rate limiting.
+    ("/api/devices/redeem", ""),
+    ("/api/devices/rotate-token", "read"),   # a device may refresh its own token
+    ("/api/chat", "chat"),
+    ("/api/call", "chat"),
+    ("/api/voice", "chat"),
+    ("/api/realtime", "chat"),
+    ("/api/remember", "chat"),
+    ("/api/approve", "approve"),
+    ("/api/events/proposals/resolve", "approve"),
+    # Acknowledging notifications and queued tasks is part of consuming them,
+    # so it rides with "read" rather than needing a wider scope.
+    ("/api/notifications/status", "read"),
+    ("/api/notifications/dismiss-all", "read"),
+    ("/api/events/tasks/status", "read"),
+)
+
+DEFAULT_SCOPE = "admin"
+
+
+def _match(path: str, rules: tuple[tuple[str, str], ...]) -> str | None:
+    """Longest matching path prefix wins, so specific rules beat general ones."""
+    matches = [(prefix, scope) for prefix, scope in rules if path == prefix or path.startswith(prefix + "/")]
+    if not matches:
+        return None
+    return max(matches, key=lambda item: len(item[0]))[1]
+
+
+def required_scope(path: str, method: str) -> str:
+    """Resolve the scope a request needs. Unmapped surfaces require admin."""
+    rules = READ_SCOPES if method.upper() in {"GET", "HEAD"} else WRITE_SCOPES
+    scope = _match(path, rules)
+    return DEFAULT_SCOPE if scope is None else scope
 
 
 class DaQauntumRequestHandler(BaseHTTPRequestHandler):
@@ -25,9 +100,81 @@ class DaQauntumRequestHandler(BaseHTTPRequestHandler):
         if self.path.startswith("/api/"):
             super().log_message(fmt, *args)
 
+    # Authentication ---------------------------------------------------------
+    @property
+    def _remote(self) -> str:
+        try:
+            return str(self.client_address[0])
+        except Exception:
+            return ""
+
+    def _is_loopback(self) -> bool:
+        """True when the request came from this machine.
+
+        Loopback is DaQauntum's private control surface and is trusted by
+        default, which is why the server binds to 127.0.0.1 and why remote
+        access is expected to arrive over Tailscale rather than an open port.
+        This reads the socket's real peer address, never a forwarded header,
+        which a remote caller could set at will.
+        """
+        remote = self._remote
+        if remote in {"127.0.0.1", "::1", "::ffff:127.0.0.1"}:
+            return True
+        return remote.startswith("127.")
+
+    def _bearer_token(self) -> str:
+        header = self.headers.get("Authorization", "") or ""
+        if header.lower().startswith("bearer "):
+            return header[7:].strip()
+        return (self.headers.get("X-DaQauntum-Token", "") or "").strip()
+
+    def _authorize(self, path: str, method: str) -> bool:
+        """Gate one API request. Returns False once a response has been sent."""
+        # Always defined, so a handler can read self.auth without guarding.
+        # None means "the local trusted surface", not "an authenticated device".
+        self.auth = None
+        kernel = self.server.kernel
+        identity = getattr(kernel, "identity", None)
+        scope = required_scope(path, method)
+        if scope == "":
+            return True  # Enrollment must be reachable without a token.
+        if identity is None or not identity.enabled:
+            return True
+
+        loopback = self._is_loopback()
+        if loopback and not identity.require_auth_for_loopback:
+            return True
+        if not loopback and not identity.require_auth_for_remote:
+            return True
+
+        result = identity.authenticate(self._bearer_token(), remote=self._remote)
+        if not result.ok:
+            # The caller is told only that authentication failed; the specific
+            # reason stays in the audit log so probing reveals nothing.
+            self._json(
+                {"ok": False, "error": "Authentication required. Enrol this device from the DaQauntum host."},
+                HTTPStatus.UNAUTHORIZED,
+            )
+            return False
+        if not result.has_scope(scope):
+            identity.audit(
+                "scope_denied", device_id=result.device.device_id if result.device else None,
+                remote=self._remote, detail=f"{method} {path} needs {scope}",
+            )
+            self._json(
+                {"ok": False, "error": f"This device is not permitted to use {path}.",
+                 "required_scope": scope, "device_scopes": result.scopes},
+                HTTPStatus.FORBIDDEN,
+            )
+            return False
+        self.auth = result
+        return True
+
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         if parsed.path.startswith("/api/"):
+            if not self._authorize(parsed.path, "GET"):
+                return
             self._handle_api_get(parsed.path, parse_qs(parsed.query))
             return
         self._serve_static(parsed.path)
@@ -36,6 +183,8 @@ class DaQauntumRequestHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         if not parsed.path.startswith("/api/"):
             self._json({"ok": False, "error": "Not found"}, HTTPStatus.NOT_FOUND)
+            return
+        if not self._authorize(parsed.path, "POST"):
             return
         try:
             if parsed.path == "/api/voice/transcribe":
@@ -62,6 +211,11 @@ class DaQauntumRequestHandler(BaseHTTPRequestHandler):
                 self._stream_ndjson(self.server.kernel.calls.add_turn_stream(session_id, text, turn_id=turn.id))
                 return
             self._handle_api_post(parsed.path, payload)
+        except IdentityError as exc:
+            # A bad or expired enrollment code, or a throttled caller. This is a
+            # refusal, not a server fault, and the message is already safe to
+            # show: it never says whether a code exists.
+            self._json({"ok": False, "error": str(exc)}, HTTPStatus.UNAUTHORIZED)
         except ValueError as exc:
             self._json({"ok": False, "error": str(exc)}, HTTPStatus.BAD_REQUEST)
         except Exception as exc:  # local alpha UI: return concise failure, keep server alive
@@ -112,6 +266,14 @@ class DaQauntumRequestHandler(BaseHTTPRequestHandler):
         if path == "/api/events":
             limit = int((query.get("limit") or ["25"])[0])
             self._json({"ok": True, **kernel.events.overview(limit=limit)})
+            return
+        if path == "/api/devices":
+            self._json({
+                "ok": True,
+                "devices": kernel.identity.list_devices(),
+                "stats": kernel.identity.stats(),
+                "auth_events": kernel.identity.recent_auth_events(limit=int((query.get("events") or ["25"])[0])),
+            })
             return
         if path == "/api/drivers":
             self._json({"ok": True, "drivers": kernel.drivers.stats()})
@@ -396,6 +558,63 @@ class DaQauntumRequestHandler(BaseHTTPRequestHandler):
             else:
                 result = kernel.reject_proposal(proposal_id)
             self._json({"ok": bool(result.get("ok")), "result": result, "proposals": kernel.events.reactions.list_proposals(status="pending_approval")})
+            return
+
+        if path == "/api/devices/enroll-code":
+            # Minting a code is an admin action and, by default, only reachable
+            # from loopback: the user creates it on the trusted host and reads
+            # it aloud to the phone.
+            issued = kernel.identity.create_enrollment_code(
+                device_name=str(payload.get("device_name", "")),
+                scopes=payload.get("scopes"),
+                ttl_seconds=payload.get("ttl_seconds"),
+            )
+            self._json({"ok": True, "enrollment": issued, "stats": kernel.identity.stats()})
+            return
+
+        if path == "/api/devices/redeem":
+            # The only endpoint reachable without a token. Protected by the
+            # single-use short-lived code and by per-address rate limiting.
+            result = kernel.identity.redeem_enrollment_code(
+                str(payload.get("code", "")),
+                device_name=str(payload.get("device_name", "")),
+                platform=str(payload.get("platform", "unknown")),
+                remote=self._remote,
+            )
+            self._json({"ok": True, **result})
+            return
+
+        if path == "/api/devices/rotate-token":
+            token = self._bearer_token()
+            if not token:
+                self._json({"ok": False, "error": "Send the current token to rotate it."}, HTTPStatus.UNAUTHORIZED)
+                return
+            rotated = kernel.identity.rotate_token(token, remote=self._remote)
+            self._json({"ok": True, "token": rotated["token"], "expires_at": rotated["expires_at"]})
+            return
+
+        if path == "/api/devices/revoke":
+            device_id = str(payload.get("device_id", "")).strip()
+            if not device_id:
+                raise ValueError("device_id is required")
+            revoked = kernel.identity.revoke_device(device_id)
+            self._json({"ok": revoked, "devices": kernel.identity.list_devices()})
+            return
+
+        if path == "/api/devices/update":
+            device_id = str(payload.get("device_id", "")).strip()
+            if not device_id:
+                raise ValueError("device_id is required")
+            device = kernel.identity.update_device(
+                device_id,
+                name=payload.get("name"),
+                scopes=payload.get("scopes"),
+                note=payload.get("note"),
+            )
+            if device is None:
+                self._json({"ok": False, "error": f"No device {device_id}"}, HTTPStatus.NOT_FOUND)
+                return
+            self._json({"ok": True, "device": device, "devices": kernel.identity.list_devices()})
             return
 
         if path == "/api/drivers/poll":

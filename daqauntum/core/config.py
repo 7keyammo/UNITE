@@ -185,6 +185,19 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "max_notifications": 1000,
         },
     },
+    "identity": {
+        "enabled": True,
+        # Loopback is the trusted control surface and stays unauthenticated by
+        # default, exactly as in v0.4.0. Anything arriving from another address
+        # must present an enrolled device token.
+        "require_auth_for_remote": True,
+        "require_auth_for_loopback": False,
+        "enrollment_code_ttl_seconds": 600,
+        "token_ttl_seconds": 2592000,
+        "max_devices": 50,
+        "max_auth_failures": 8,
+        "auth_failure_window_seconds": 300,
+    },
     "drivers": {
         "enabled": True,
         # Every driver is opt-in and starts disabled. Discovering a device

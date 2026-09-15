@@ -149,6 +149,9 @@ REQUIRED = [
     "drivers/base.py",
     "evaluations/events_smoke_test.py",
     "evaluations/drivers_smoke_test.py",
+    "evaluations/identity_smoke_test.py",
+    "identity/manager.py",
+    "identity/models.py",
 ]
 
 EXPECTED_VERSION = "0.4.1-dev"
