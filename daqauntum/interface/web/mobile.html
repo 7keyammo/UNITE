@@ -121,6 +121,18 @@ nav button .badge{position:absolute;transform:translate(16px,-6px);background:va
       <button id="noteBtn">Send to DaQauntum</button>
       <p class="note">Notes are saved into DaQauntum's structured memory on the host.</p>
     </div>
+    <div class="card" id="captureCard">
+      <h2>Capture</h2>
+      <p class="note">Photos go to DaQauntum's perception store; files go to the Device Inbox and are indexed as sources. Nothing is analysed until you ask.</p>
+      <label for="photoInput">Photo</label>
+      <input id="photoInput" type="file" accept="image/*" capture="environment" />
+      <label for="fileInput">File</label>
+      <input id="fileInput" type="file" />
+      <label for="captureProject">Project (optional)</label>
+      <input id="captureProject" placeholder="Project name" autocomplete="off" />
+      <button id="captureBtn">Send capture</button>
+      <div id="capturePreview"></div>
+    </div>
     <div class="card">
       <h2>This device</h2>
       <div id="deviceInfo" class="note"></div>
@@ -406,7 +418,81 @@ $("noteBtn").addEventListener("click", async () => {
   finally { $("noteBtn").disabled = false; }
 });
 
+// Capture -------------------------------------------------------------------
+const MAX_CAPTURE_BYTES = 20 * 1024 * 1024;
+
+function readAsDataUrl(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Could not read that file"));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function downscale(file, maxEdge){
+  // Phone cameras produce 12MP images. Sending one whole is slow on mobile data
+  // and gains nothing for perception, so shrink the long edge first. If anything
+  // about the decode fails, fall back to the original rather than dropping it.
+  try {
+    const dataUrl = await readAsDataUrl(file);
+    const image = await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("decode failed"));
+      img.src = dataUrl;
+    });
+    const scale = Math.min(1, maxEdge / Math.max(image.width, image.height));
+    if (scale >= 1) return dataUrl;
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(image.width * scale);
+    canvas.height = Math.round(image.height * scale);
+    canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.85);
+  } catch (error) {
+    return readAsDataUrl(file);
+  }
+}
+
+$("captureBtn").addEventListener("click", async () => {
+  const photo = $("photoInput").files[0];
+  const file = $("fileInput").files[0];
+  if (!photo && !file) return toast("Choose a photo or a file first", true);
+  if (!can("ingest")) return toast("This device is not permitted to send captures", true);
+
+  $("captureBtn").disabled = true;
+  const project = $("captureProject").value.trim();
+  try {
+    if (photo) {
+      const dataUrl = await downscale(photo, 1600);
+      const result = await api("/api/capture/photo", "POST", {
+        data_url: dataUrl, frame_type: "camera", label: photo.name || "Phone photo",
+      });
+      $("capturePreview").innerHTML = `<div class="item notice"><strong>Photo stored</strong><div class="sub">frame #${esc(result.frame.id)}</div></div>`;
+      $("photoInput").value = "";
+    }
+    if (file) {
+      if (file.size > MAX_CAPTURE_BYTES) throw new Error("That file is too large to send");
+      const dataUrl = await readAsDataUrl(file);
+      const base64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
+      const result = await api("/api/capture/file", "POST", {
+        filename: file.name, content_base64: base64, project,
+      });
+      $("capturePreview").innerHTML += `<div class="item notice"><strong>File indexed</strong><div class="sub">source #${esc(result.source.id)} — ${esc(result.source.title || file.name)}</div></div>`;
+      $("fileInput").value = "";
+    }
+    toast("Sent to DaQauntum");
+  } catch (error) {
+    toast(error.message, true);
+  } finally {
+    $("captureBtn").disabled = false;
+  }
+});
+
 function renderDeviceInfo(){
+  // Hide capture entirely when the device was not granted the ingest scope,
+  // rather than offering a button that will fail.
+  $("captureCard").classList.toggle("hidden", !can("ingest"));
   const device = state.device || {};
   $("deviceInfo").innerHTML = `
     <div><strong>${esc(device.name || "This device")}</strong></div>

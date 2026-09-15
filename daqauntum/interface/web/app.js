@@ -86,7 +86,7 @@ async function attachDuplexToCall(){if(!S.call||!duplexEnabled())return false;tr
 
 function toast(msg,error=false){const t=$('toast');t.textContent=msg;t.className='toast show'+(error?' error':'');setTimeout(()=>t.className='toast',2600)}
 function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function setView(name){document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('active',b.dataset.view===name));document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));if(name==='memory') loadMemory();if(name==='learning') loadLearning();if(name==='connect') loadConnectors();if(name==='workspaces') loadWorkspaces();if(name==='integrations') loadIntegrations();if(name==='perception') loadPerception();if(name==='presence') loadPresence();if(name==='events') loadEvents();if(name==='devices') loadDevices();if(name==='demo') loadDemo();if(name==='system') loadSystem();if(name==='universe') loadUniverse()}
+function setView(name){document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('active',b.dataset.view===name));document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));if(name==='memory') loadMemory();if(name==='learning') loadLearning();if(name==='connect'){loadConnectors();loadObsidian()}if(name==='workspaces') loadWorkspaces();if(name==='integrations') loadIntegrations();if(name==='perception') loadPerception();if(name==='presence') loadPresence();if(name==='events') loadEvents();if(name==='devices') loadDevices();if(name==='demo') loadDemo();if(name==='system') loadSystem();if(name==='universe') loadUniverse()}
 document.querySelectorAll('.nav').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
 
 function modelText(x){return x?`${x.provider} / ${x.model}`:'—'}
@@ -307,6 +307,7 @@ async function loadSystem(){try{await refreshStatus();$('systemStatus').textCont
 
 async function loadUniverse(){
   try{const d=await api('/api/universe');S.universe=d.universe;const u=d.universe,a=u.atom||{};window.DQUniverse?.setData(u);$('universeAtomId').textContent=a.atom_id||'—';$('universeLevel').textContent=`LEVEL ${a.level||1}`;$('universeEnergy').textContent=`${Math.round((a.energy||0)*100)}%`;$('universeMolecules').textContent=String((u.molecules||[]).length);$('universeNetwork').textContent=u.network?.connected?'NETWORKED':'LOCAL UNIVERSE';
+    loadBrain();
     $('moleculeList').className='list'+((u.molecules||[]).length?'':' empty');$('moleculeList').innerHTML=(u.molecules||[]).length?(u.molecules||[]).map(m=>`<div class="molecule-item"><strong>${esc(m.name)}</strong><div class="task-meta">mass ${m.mass} · project molecule</div></div>`).join(''):'No project molecules yet.';
     $('peerList').className='list'+((u.peers||[]).length?'':' empty');$('peerList').innerHTML=(u.peers||[]).length?(u.peers||[]).map(p=>`<div class="peer-item"><strong>${esc(p.name||p.atom_id||'Peer atom')}</strong></div>`).join(''):'Peer networking is not enabled yet. This release keeps your universe local.';renderModuleToggles(u.modules||{});
   }catch(e){toast(e.message,true)}
@@ -605,3 +606,85 @@ async function editDeviceScopes(id){
 window.editDeviceScopes=editDeviceScopes;
 
 $('refreshDevicesBtn')?.addEventListener('click',loadDevices);
+
+// Obsidian long-term memory ---------------------------------------------------
+async function loadObsidian(){
+  try{
+    const d=await api('/api/obsidian');const v=d.obsidian?.vault||{};
+    $('obsidianVaultLabel').textContent=v.root?String(v.root).replace(/^.*\//,'…/'+String(v.root).split('/').slice(-2).join('/')):'not configured';
+    $('obsidianMetrics').innerHTML=[['Vault notes',v.notes||0],['Your notes',v.user_notes||0],['DaQauntum notes',v.generated||0],['Indexed sources',d.sources?.sources||0]]
+      .map(([a,b])=>`<div class="metric"><small>${a}</small><strong>${b}</strong></div>`).join('');
+  }catch(e){/* the connect view still works without the vault */}
+}
+async function runObsidian(path,label,btn){
+  try{
+    btn.disabled=true;toast(`${label}…`);
+    const d=await api(path,'POST',{});const r=d.result||{};
+    const parts=[];
+    const ex=r.export||r, im=r.import||r;
+    if(ex.memories!==undefined)parts.push(`exported ${ex.memories} memories, ${ex.knowledge_nodes||0} knowledge notes`);
+    if(im.indexed!==undefined)parts.push(`indexed ${im.indexed} of your notes (${im.skipped_generated||0} DaQauntum notes skipped)`);
+    $('obsidianResult').className='summary';
+    $('obsidianResult').innerHTML=`<div>${esc(parts.join(' · ')||'Done')}</div><div class="task-meta dim">${esc(ex.root||im.root||'')}</div>`;
+    toast(`${label} complete`);await loadObsidian();await refreshStatus();
+  }catch(e){toast(e.message,true)}finally{btn.disabled=false}
+}
+$('obsidianExportBtn')?.addEventListener('click',e=>runObsidian('/api/obsidian/export','Export',e.target));
+$('obsidianImportBtn')?.addEventListener('click',e=>runObsidian('/api/obsidian/import','Index',e.target));
+$('obsidianSyncBtn')?.addEventListener('click',e=>runObsidian('/api/obsidian/sync','Sync',e.target));
+
+// v0.4.3 atom brain structure -------------------------------------------------
+async function loadBrain(){
+  try{
+    const d=await api('/api/universe/brain');const b=d.brain;S.brain=b;
+    window.DQUniverse?.setBrain(b);
+    if(window.DQUniverse) window.DQUniverse.onSelect=showBrainNode;
+    const net=b.network||{};
+    $('universeDevices').textContent=String(net.device_count||0);
+    $('networkMode').textContent=net.connected?`${net.device_count} device(s)`:'this atom only';
+    renderBrainShells(b.shells||[]);
+    renderDeviceOrbit(net);
+  }catch(e){/* the universe view still renders without the brain overlay */}
+}
+
+function renderBrainShells(shells){
+  const box=$('brainShells');
+  if(!shells.length){box.className='list empty';box.innerHTML='No structure available.';return}
+  box.className='list';
+  box.innerHTML=shells.map(s=>{
+    const dots=(s.nodes||[]).map(n=>{
+      const state=!n.enabled?'off':(n.degraded?'degraded':'on');
+      return `<i class="dot ${state}" title="${esc(n.name)}: ${esc(n.detail||'')}"></i>`;
+    }).join('');
+    return `<div class="event-item shell-${esc(s.name)}"><div class="row"><strong>${esc(s.title)}</strong><span class="workspace-stage">${s.active}/${s.total}</span></div><div class="task-meta">${dots}</div><div class="task-meta dim">${esc(s.description)}</div></div>`;
+  }).join('');
+}
+
+function showBrainNode(selection){
+  const box=$('brainInspector');
+  if(!selection){
+    $('inspectorTitle').textContent='BRAIN STRUCTURE';
+    box.className='summary';
+    box.textContent='Select a node in the atom to see what it holds right now.';
+    return;
+  }
+  const {node,shell}=selection;
+  const state=!node.enabled?'module switched off':(node.degraded?'available but not fully configured':'active');
+  $('inspectorTitle').textContent=node.name.toUpperCase();
+  box.className='summary';
+  box.innerHTML=`<div class="row"><strong>${esc(node.name)}</strong><span class="workspace-stage">${esc(state)}</span></div>
+    <div class="task-meta">${esc(node.detail||'—')}</div>
+    <div class="task-meta dim">Shell: ${esc(shell.title)} — ${esc(shell.description)}</div>
+    ${node.degraded?'<div class="task-meta dim">This subsystem is implemented but something it needs is missing on this machine. Run <code>scripts/doctor.py</code> for the exact fix.</div>':''}`;
+}
+
+function renderDeviceOrbit(network){
+  const box=$('deviceOrbit');const devices=network.devices||[];
+  if(!devices.length){
+    box.className='list empty';
+    box.innerHTML='No devices enrolled yet. Enrol one in ⛨ Devices to reach DaQauntum from your phone.';
+    return;
+  }
+  box.className='list';
+  box.innerHTML=devices.map(d=>`<div class="event-item"><div class="row"><strong>${esc(d.name)}</strong><span class="workspace-stage">${esc(d.platform||'device')}</span></div><div class="task-meta">${(d.scopes||[]).map(s=>`<span class="chip on">${esc(s)}</span>`).join('')}</div>${d.last_seen_at?`<div class="task-meta dim">last seen ${esc(new Date(d.last_seen_at*1000).toLocaleString())}</div>`:''}</div>`).join('');
+}

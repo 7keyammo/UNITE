@@ -65,6 +65,8 @@ WRITE_SCOPES: tuple[tuple[str, str], ...] = (
     ("/api/voice", "chat"),
     ("/api/realtime", "chat"),
     ("/api/remember", "chat"),
+    ("/api/capture", "ingest"),
+    ("/api/obsidian", "admin"),
     ("/api/approve", "approve"),
     ("/api/events/proposals/resolve", "approve"),
     # Acknowledging notifications and queued tasks is part of consuming them,
@@ -246,6 +248,9 @@ class DaQauntumRequestHandler(BaseHTTPRequestHandler):
         if path == "/api/universe":
             self._json({"ok": True, "universe": kernel.universe_snapshot()})
             return
+        if path == "/api/universe/brain":
+            self._json({"ok": True, "brain": kernel.universe.brain_structure()})
+            return
         if path == "/api/connectors":
             self._json({
                 "ok": True,
@@ -274,6 +279,9 @@ class DaQauntumRequestHandler(BaseHTTPRequestHandler):
                 "stats": kernel.identity.stats(),
                 "auth_events": kernel.identity.recent_auth_events(limit=int((query.get("events") or ["25"])[0])),
             })
+            return
+        if path == "/api/obsidian":
+            self._json({"ok": True, "obsidian": kernel.obsidian_memory.stats(), "sources": kernel.sources.stats()})
             return
         if path == "/api/drivers":
             self._json({"ok": True, "drivers": kernel.drivers.stats()})
@@ -615,6 +623,74 @@ class DaQauntumRequestHandler(BaseHTTPRequestHandler):
                 self._json({"ok": False, "error": f"No device {device_id}"}, HTTPStatus.NOT_FOUND)
                 return
             self._json({"ok": True, "device": device, "devices": kernel.identity.list_devices()})
+            return
+
+        if path == "/api/capture/photo":
+            # A photo from an enrolled device enters the same perception store
+            # as a locally captured frame. Capture is ingestion: it does not
+            # analyse anything by itself, and vision routing still obeys the
+            # runtime privacy policy when the user asks for analysis.
+            data_url = str(payload.get("data_url", "")).strip()
+            if not data_url:
+                raise ValueError("data_url is required")
+            frame = kernel.perception.add_data_url(
+                data_url,
+                frame_type=str(payload.get("frame_type", "camera")),
+                label=str(payload.get("label", "")).strip() or "Phone capture",
+                metadata={
+                    "origin": "device",
+                    "device": (self.auth.device.name if getattr(self, "auth", None) and self.auth.device else "local"),
+                },
+            )
+            self._json({"ok": True, "frame": frame, "perception": kernel.perception.stats()})
+            return
+
+        if path == "/api/capture/file":
+            # Files land in the Device Inbox connector, which is already the
+            # explicitly granted ingestion scope, rather than anywhere on disk.
+            import base64
+            import re as _re
+            from pathlib import Path as _Path
+
+            filename = str(payload.get("filename", "")).strip() or "upload.bin"
+            filename = _re.sub(r"[^A-Za-z0-9._-]", "_", filename)[:120]
+            encoded = str(payload.get("content_base64", ""))
+            if not encoded:
+                raise ValueError("content_base64 is required")
+            try:
+                blob = base64.b64decode(encoded, validate=True)
+            except Exception as exc:
+                raise ValueError("content_base64 is not valid base64") from exc
+            limit = int(kernel.config.get("device_bridge", {}).get("max_upload_bytes", 20_000_000))
+            if len(blob) > limit:
+                raise ValueError(f"File is larger than the {limit} byte ingestion limit")
+
+            inbox = _Path(kernel.connectors.inbox_dir)
+            inbox.mkdir(parents=True, exist_ok=True)
+            import time as _time
+            import secrets as _secrets
+
+            target = inbox / f"{_time.strftime('%Y%m%d-%H%M%S')}-{_secrets.token_hex(3)}-{filename}"
+            target.write_bytes(blob)
+            device_name = self.auth.device.name if getattr(self, "auth", None) and self.auth.device else "local"
+            source = kernel.connectors.ingest_device_file(
+                target,
+                project=str(payload.get("project", "")).strip() or None,
+                device_name=device_name,
+            )
+            self._json({"ok": True, "source": source, "bytes": len(blob)})
+            return
+
+        if path in {"/api/obsidian/export", "/api/obsidian/import", "/api/obsidian/sync"}:
+            project = str(payload.get("project", "")).strip() or None
+            bridge = kernel.obsidian_memory
+            if path.endswith("/export"):
+                result = bridge.export(project=project)
+            elif path.endswith("/import"):
+                result = bridge.import_vault(project=project)
+            else:
+                result = bridge.sync(project=project)
+            self._json({"ok": True, "result": result, "stats": bridge.stats(), "sources": kernel.sources.stats()})
             return
 
         if path == "/api/drivers/poll":

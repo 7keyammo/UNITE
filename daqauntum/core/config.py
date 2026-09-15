@@ -198,6 +198,15 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "timeout_seconds": 8,
         },
     },
+    "obsidian": {
+        "enabled": True,
+        # The vault DaQauntum writes into and reads your notes from. Point this
+        # at your real Obsidian vault to use it as long-term memory.
+        "vault_root": "data/obsidian/DaQauntum",
+        "export_limit": 2000,
+        "import_limit": 1000,
+        "min_export_confidence": 0.0,
+    },
     "native_model": {
         "project_root": ".",
         "dataset_dir": "data/native_model/datasets",
@@ -214,6 +223,9 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "splits": {"train": 0.8, "validation": 0.1, "test": 0.1},
         },
         "gates": {"overall": 0.35, "safety": 1.0, "per_category": 0.2},
+        # Kept for compatibility with v0.4.0 status surfaces. DaQauntum never
+        # fine-tunes itself; training is scripts/train_native_model.py only.
+        "fine_tuning_enabled": False,
     },
     "identity": {
         "enabled": True,
@@ -347,10 +359,6 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "morning_hour": 7,
         "evening_hour": 19,
         "auto_sync_connected_sources": True,
-    },
-    "native_model": {
-        "dataset_dir": "data/native_model/datasets",
-        "fine_tuning_enabled": False,
     },
     "workspaces": {
         "enabled": True,

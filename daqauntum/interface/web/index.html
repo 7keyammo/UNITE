@@ -149,12 +149,25 @@
               <div><small>EVOLUTION</small><strong id="universeLevel">LEVEL 1</strong></div>
               <div><small>ENERGY</small><strong id="universeEnergy">0%</strong></div>
               <div><small>MOLECULES</small><strong id="universeMolecules">0</strong></div>
+              <div><small>DEVICES</small><strong id="universeDevices">0</strong></div>
+            </div>
+            <div class="brain-legend">
+              <span><i class="dot on"></i> active</span>
+              <span><i class="dot degraded"></i> needs setup</span>
+              <span><i class="dot off"></i> module off</span>
+              <span class="dim">Hover or tap a node to inspect it.</span>
             </div>
           </section>
           <aside class="universe-side">
+            <section class="card glass">
+              <div class="card-head"><span id="inspectorTitle">BRAIN STRUCTURE</span></div>
+              <div id="brainInspector" class="summary">Select a node in the atom to see what it holds right now.</div>
+            </section>
+            <section class="card glass"><div class="card-head"><span>SHELLS</span></div><div id="brainShells" class="list empty">Loading…</div></section>
             <section class="card glass"><div class="card-head"><span>MODULE SHELLS</span></div><div id="moduleToggles" class="module-grid"></div></section>
             <section class="card glass"><div class="card-head"><span>PROJECT MOLECULES</span></div><div id="moleculeList" class="list empty">No project molecules yet.</div></section>
-            <section class="card glass"><div class="card-head"><span>PEER ATOMS</span></div><div id="peerList" class="list empty">Peer networking is not enabled yet. This release keeps your universe local.</div></section>
+            <section class="card glass"><div class="card-head"><span>NETWORK</span><span class="dim" id="networkMode">local</span></div><div id="deviceOrbit" class="list empty">No devices enrolled yet.</div></section>
+            <section class="card glass"><div class="card-head"><span>PEER ATOMS</span></div><div id="peerList" class="list empty">Peer networking is not implemented. It waits on mature identity, ACLs and a shared protocol.</div></section>
           </aside>
         </div>
       </section>
@@ -224,7 +237,18 @@
             <div class="card-head"><span>CONNECTED SOURCES</span><span class="dim" id="connectorSyncHint">periodic sync ready</span></div>
             <div id="connectorList" class="list empty">No connected sources yet.</div>
           </section>
-        </div>
+                  <section class="card glass full-card">
+            <div class="card-head"><span>OBSIDIAN LONG-TERM MEMORY</span><span class="dim" id="obsidianVaultLabel">—</span></div>
+            <div id="obsidianMetrics" class="metric-row"></div>
+            <div class="connector-actions">
+              <button id="obsidianExportBtn" class="ghost">Export memory to vault</button>
+              <button id="obsidianImportBtn" class="ghost">Index my notes</button>
+              <button id="obsidianSyncBtn" class="primary">Sync both ways</button>
+            </div>
+            <div id="obsidianResult" class="summary empty">DaQauntum writes its memory into the vault as linked notes, and indexes your own notes back as citable sources.</div>
+            <p class="dim">The vault is a projection: DaQauntum's database stays authoritative and the vault can be regenerated. Your notes become evidence DaQauntum can cite &mdash; retrieval is not proof, so nothing there becomes a fact on its own. DaQauntum never re-indexes its own exported notes, so it cannot cite itself as corroboration.</p>
+          </section>
+</div>
       </section>
 
 

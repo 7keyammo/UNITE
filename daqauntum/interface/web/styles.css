@@ -71,3 +71,13 @@ body[data-dq-state="listening"] .atom-core .nucleus{box-shadow:0 0 55px rgba(73,
 .scope-option small{color:#9aa3b8;font-size:.7rem}
 .enroll-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:2rem;letter-spacing:.18em;font-weight:700;color:#7cffbe;padding:10px 0;text-align:center;user-select:all}
 #view-devices .list{max-height:360px;overflow:auto}
+
+/* v0.4.3 atom brain structure */
+.brain-legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;padding:8px 14px;font-size:.7rem;color:#9aa3b8}
+.brain-legend i.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.event-item .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.dot.on{background:#67f8ff}
+.dot.degraded{background:#ffab4d}
+.dot.off{background:rgba(150,160,184,.45)}
+#brainInspector code{background:rgba(255,255,255,.07);padding:1px 5px;border-radius:5px;font-size:.78rem}
+#view-universe .list{max-height:260px;overflow:auto}

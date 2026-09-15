@@ -35,6 +35,7 @@ from events import EventSystem
 from drivers import DriverManager
 from identity import IdentityManager
 from native_model.lab import NativeModelLab
+from obsidian import ObsidianMemoryBridge
 from demo import DemoManager
 
 
@@ -110,7 +111,7 @@ class DaQauntumKernel:
         self.constitution = self._load_constitution()
         self.calls = CallSessionManager(self, self.config.get("call", {}))
         self.voice = LocalVoiceEngine(self.config.get("voice", {}))
-        self.universe = UniverseState(self.memory, self.structured_memory, self.knowledge, self.sources, self.calls, self.runtime)
+        self.universe = UniverseState(self.memory, self.structured_memory, self.knowledge, self.sources, self.calls, self.runtime, kernel=self)
         self.realtime = RealtimeSessionManager()
         self.learning = LearningManager(self, self.config.get("learning", {}))
         self.native_model = NativeDatasetBuilder(self.memory, project_root=self.config.get("learning", {}).get("project_root", "."), output_dir=self.config.get("native_model", {}).get("dataset_dir", "data/native_model/datasets"))
@@ -119,6 +120,10 @@ class DaQauntumKernel:
         self.model_lab = NativeModelLab(self, self.config.get("native_model", {}))
         self.workbench = AgentWorkbench(self, self.workspaces, self.config.get("workspaces", {}))
         self.obsidian = ObsidianExporter(self.workspaces, self.workbench, self.config.get("workspaces", {}).get("obsidian_root"))
+        # Long-term memory bridge. The vault is a projection of memory,
+        # never the authoritative store, and DaQauntum never re-indexes
+        # its own exported notes as independent sources.
+        self.obsidian_memory = ObsidianMemoryBridge(self, self.config.get("obsidian", {}))
         self.demo = DemoManager(self, self.config.get("demo", {}))
         self.duplex_endpoint = {"enabled": False, "host": None, "port": None}
         self.device_bridge_endpoint = {"enabled": False, "host": None, "port": None, "url": None, "pairing_code": None}
@@ -174,6 +179,7 @@ class DaQauntumKernel:
             "drivers": self.drivers.stats(),
             "identity": self.identity.stats(),
             "native_model": self.model_lab.stats(),
+            "obsidian": self.obsidian_memory.stats(),
             "demo": self.demo.readiness(),
             "tools": [item["name"] for item in self.tools.descriptions()],
             "pending_approvals": list(self.pending),
