@@ -32,7 +32,7 @@ class ToolSpec:
 
 
 class ToolRegistry:
-    def __init__(self, memory, permission_manager: PermissionManager, project_root: str = ".", notes_dir: str = "data/notes", structured_memory=None, knowledge_graph=None, source_manager=None, integration_manager=None, perception_manager=None, computer_controller=None, presence_manager=None):
+    def __init__(self, memory, permission_manager: PermissionManager, project_root: str = ".", notes_dir: str = "data/notes", structured_memory=None, knowledge_graph=None, source_manager=None, integration_manager=None, perception_manager=None, computer_controller=None, presence_manager=None, driver_manager=None, event_system=None):
         self.memory = memory
         self.structured_memory = structured_memory
         self.knowledge_graph = knowledge_graph
@@ -41,6 +41,8 @@ class ToolRegistry:
         self.perception_manager = perception_manager
         self.computer_controller = computer_controller
         self.presence_manager = presence_manager
+        self.driver_manager = driver_manager
+        self.event_system = event_system
         self.permission_manager = permission_manager
         self.project_root = Path(project_root).resolve()
         self.notes_dir = (self.project_root / notes_dir).resolve()
@@ -75,6 +77,12 @@ class ToolRegistry:
         self.register(ToolSpec("service_discovery", "Explicitly discover local mDNS/Bonjour services visible on the current network.", 0, False, self._service_discovery))
         self.register(ToolSpec("wifi_activate_profile", "Activate an already-saved operating-system Wi-Fi profile. Requires approval.", 3, False, self._wifi_activate_profile))
         self.register(ToolSpec("bluetooth_connect", "Connect an already-paired Bluetooth device. Requires approval.", 3, False, self._bluetooth_connect))
+        self.register(ToolSpec("driver_status", "Report which v0.4.1 device drivers are enabled, available, configured and usable.", 0, False, self._driver_status))
+        self.register(ToolSpec("driver_discover", "Explicitly enumerate devices, ports, topics or entities one device driver can see. Discovery does not authorize connecting or controlling anything.", 0, False, self._driver_discover))
+        self.register(ToolSpec("driver_read", "Read a current value from an explicitly allowlisted device, serial port, MQTT topic or Home Assistant entity.", 0, False, self._driver_read))
+        self.register(ToolSpec("driver_write", "Send a command to an allowlisted device through a device driver. Requires approval and the driver must have writes explicitly enabled.", 3, False, self._driver_write))
+        self.register(ToolSpec("events_recent", "Read DaQauntum's recent normalized device/presence events.", 0, False, self._events_recent))
+        self.register(ToolSpec("notifications_pending", "Read DaQauntum's pending notifications, queued tasks and proposed actions awaiting approval.", 0, False, self._notifications_pending))
 
     def register(self, spec: ToolSpec) -> None:
         self.tools[spec.name] = spec
@@ -263,6 +271,118 @@ class ToolRegistry:
             return ToolResult("wifi_activate_profile", True, self.presence_manager.activate_wifi_profile(str(args.get("profile", ""))))
         except Exception as exc:
             return ToolResult("wifi_activate_profile", False, str(exc))
+
+    def _driver_status(self, args: dict[str, Any]) -> ToolResult:
+        if self.driver_manager is None:
+            return ToolResult("driver_status", False, "Device drivers are not configured.")
+        import json
+        name = str(args.get("driver", "")).strip()
+        try:
+            if name:
+                data = self.driver_manager.get(name).status().as_dict()
+            else:
+                data = self.driver_manager.stats()
+            return ToolResult("driver_status", True, json.dumps(data, indent=2, default=str))
+        except Exception as exc:
+            return ToolResult("driver_status", False, str(exc))
+
+    def _driver_discover(self, args: dict[str, Any]) -> ToolResult:
+        """Explicit, read-only enumeration.
+
+        Discovery is a separate step from connecting on purpose: the result
+        marks which entries are approved, and an unapproved one stays unusable.
+        """
+        if self.driver_manager is None:
+            return ToolResult("driver_discover", False, "Device drivers are not configured.")
+        name = str(args.get("driver", "")).strip()
+        if not name:
+            return ToolResult("driver_discover", False, "Provide a driver name, for example: serial, ble, mqtt, home_assistant.")
+        import json
+        try:
+            found = self.driver_manager.discover(name)
+            return ToolResult(
+                "driver_discover",
+                True,
+                json.dumps(
+                    {
+                        "driver": name,
+                        "found": len(found),
+                        "note": "Detected devices are not approved, paired or controllable. Allowlist them in config first.",
+                        "items": found[:80],
+                    },
+                    indent=2,
+                    default=str,
+                ),
+            )
+        except Exception as exc:
+            return ToolResult("driver_discover", False, str(exc))
+
+    def _driver_read(self, args: dict[str, Any]) -> ToolResult:
+        if self.driver_manager is None:
+            return ToolResult("driver_read", False, "Device drivers are not configured.")
+        name = str(args.get("driver", "")).strip()
+        if not name:
+            return ToolResult("driver_read", False, "Provide a driver name.")
+        target = str(args.get("target", "")).strip() or None
+        import json
+        try:
+            return ToolResult("driver_read", True, json.dumps(self.driver_manager.read(name, target), indent=2, default=str))
+        except Exception as exc:
+            return ToolResult("driver_read", False, str(exc))
+
+    def _driver_write(self, args: dict[str, Any]) -> ToolResult:
+        """Only state-changing driver entry point.
+
+        Reaching this handler means the permission gate already approved the
+        call. The driver still applies its own allowlist and allow_writes flag,
+        so both the user's permission level and the device's declared scope
+        have to agree before anything is sent.
+        """
+        if self.driver_manager is None:
+            return ToolResult("driver_write", False, "Device drivers are not configured.")
+        name = str(args.get("driver", "")).strip()
+        target = str(args.get("target", "")).strip()
+        payload = args.get("payload", args.get("value", ""))
+        if not name or not target:
+            return ToolResult("driver_write", False, "Provide 'driver' and 'target'.")
+        extra = {key: value for key, value in args.items() if key not in {"driver", "target", "payload", "value"}}
+        try:
+            output = self.driver_manager.write(name, target, payload, **extra)
+            self.memory.add_event("driver_write", {"driver": name, "target": target})
+            return ToolResult("driver_write", True, output)
+        except Exception as exc:
+            return ToolResult("driver_write", False, str(exc))
+
+    def _events_recent(self, args: dict[str, Any]) -> ToolResult:
+        if self.event_system is None:
+            return ToolResult("events_recent", False, "Event bus is not configured.")
+        import json
+        try:
+            events = self.event_system.recent_events(
+                limit=int(args.get("limit", 25)),
+                source=str(args.get("source", "")).strip() or None,
+                kind=str(args.get("kind", "")).strip() or None,
+                min_severity=str(args.get("min_severity", "")).strip() or None,
+            )
+            return ToolResult("events_recent", True, json.dumps(events, indent=2, default=str))
+        except Exception as exc:
+            return ToolResult("events_recent", False, str(exc))
+
+    def _notifications_pending(self, args: dict[str, Any]) -> ToolResult:
+        if self.event_system is None:
+            return ToolResult("notifications_pending", False, "Event bus is not configured.")
+        import json
+        try:
+            limit = int(args.get("limit", 20))
+            data = {
+                "notifications": self.event_system.notifications.list(status="pending", limit=limit),
+                "tasks": self.event_system.reactions.list_tasks(status="open", limit=limit),
+                "proposals": self.event_system.reactions.list_proposals(status="pending_approval", limit=limit),
+                "note": "Proposed actions have not run. They execute only if you approve them.",
+            }
+            return ToolResult("notifications_pending", True, json.dumps(data, indent=2, default=str))
+        except Exception as exc:
+            return ToolResult("notifications_pending", False, str(exc))
 
     def _bluetooth_connect(self, args: dict[str, Any]) -> ToolResult:
         if self.presence_manager is None:

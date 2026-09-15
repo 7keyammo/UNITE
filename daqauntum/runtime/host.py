@@ -104,6 +104,15 @@ class DaQauntumHost:
                 int(self.kernel.config.get("presence", {}).get("sample_interval_seconds", 20)),
             ).start()
 
+        # Device drivers poll only when the user enabled at least one and gave
+        # it an explicit allowlist; start() returns False otherwise.
+        drivers_cfg = self.kernel.config.get("drivers", {})
+        if bool(drivers_cfg.get("enabled", True)) and getattr(self.kernel, "drivers", None) is not None:
+            try:
+                self.kernel.drivers.start(int(drivers_cfg.get("poll_interval_seconds", 30)))
+            except Exception:
+                pass
+
         bridge_cfg = self.kernel.config.get("device_bridge", {})
         bridge_enabled = bool(self.device_bridge_requested or bridge_cfg.get("enabled", False)) and self.kernel.runtime.module_enabled("connectors")
         bridge_url = None
@@ -170,3 +179,8 @@ class DaQauntumHost:
             except Exception:
                 pass
             self.presence_monitor = None
+        if getattr(self.kernel, "drivers", None) is not None:
+            try:
+                self.kernel.drivers.stop()
+            except Exception:
+                pass

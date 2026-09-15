@@ -32,6 +32,7 @@ from perception import PerceptionManager
 from computer import ComputerController
 from presence import PresenceManager
 from events import EventSystem
+from drivers import DriverManager
 from demo import DemoManager
 
 
@@ -66,6 +67,10 @@ class DaQauntumKernel:
             computer_controller=self.computer,
             presence_manager=self.presence,
         )
+        # Wired after construction because the driver manager and event system
+        # need the registry that is being built here.
+        self.tools.driver_manager = None
+        self.tools.event_system = None
         # The event system is constructed after the tool registry and permission
         # manager so a proposed reaction can be checked against the real gate.
         # It receives them to *evaluate* authority, never to execute.
@@ -77,6 +82,15 @@ class DaQauntumKernel:
         )
         if self.config.get("events", {}).get("presence_bridge", True):
             self.presence.event_sink = self.events.ingest_presence_sample
+        # Drivers observe approved hardware and hand observations to the event
+        # system. Writing to a device stays behind the driver_write tool.
+        self.drivers = DriverManager(
+            self.config.get("drivers", {}),
+            event_system=self.events,
+            integrations=self.integrations,
+        )
+        self.tools.event_system = self.events
+        self.tools.driver_manager = self.drivers
         self.brain = CognitiveModelRouter(self.config["models"])
         cognition = self.config.get("cognition", {})
         self.planner = Planner(self.brain, self.tools.descriptions(), bool(cognition.get("planner_enabled", True)))
@@ -149,6 +163,7 @@ class DaQauntumKernel:
             "computer": self.computer.status(),
             "presence": {"stats": self.presence.stats(), "latest": self.presence.latest()},
             "events": self.events.stats(),
+            "drivers": self.drivers.stats(),
             "demo": self.demo.readiness(),
             "tools": [item["name"] for item in self.tools.descriptions()],
             "pending_approvals": list(self.pending),
