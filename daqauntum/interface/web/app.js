@@ -86,7 +86,7 @@ async function attachDuplexToCall(){if(!S.call||!duplexEnabled())return false;tr
 
 function toast(msg,error=false){const t=$('toast');t.textContent=msg;t.className='toast show'+(error?' error':'');setTimeout(()=>t.className='toast',2600)}
 function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function setView(name){document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('active',b.dataset.view===name));document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));if(name==='memory') loadMemory();if(name==='learning') loadLearning();if(name==='connect') loadConnectors();if(name==='workspaces') loadWorkspaces();if(name==='integrations') loadIntegrations();if(name==='perception') loadPerception();if(name==='presence') loadPresence();if(name==='events') loadEvents();if(name==='demo') loadDemo();if(name==='system') loadSystem();if(name==='universe') loadUniverse()}
+function setView(name){document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('active',b.dataset.view===name));document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));if(name==='memory') loadMemory();if(name==='learning') loadLearning();if(name==='connect') loadConnectors();if(name==='workspaces') loadWorkspaces();if(name==='integrations') loadIntegrations();if(name==='perception') loadPerception();if(name==='presence') loadPresence();if(name==='events') loadEvents();if(name==='devices') loadDevices();if(name==='demo') loadDemo();if(name==='system') loadSystem();if(name==='universe') loadUniverse()}
 document.querySelectorAll('.nav').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
 
 function modelText(x){return x?`${x.provider} / ${x.model}`:'—'}
@@ -523,3 +523,85 @@ window.discoverDriver=discoverDriver;
 $('refreshEventsBtn')?.addEventListener('click',loadEvents);
 $('dismissAllBtn')?.addEventListener('click',async()=>{try{const d=await api('/api/notifications/dismiss-all','POST',{});toast(`Dismissed ${d.dismissed}`);await loadEvents();await refreshStatus()}catch(e){toast(e.message,true)}});
 $('pollDriversBtn')?.addEventListener('click',async()=>{try{$('pollDriversBtn').disabled=true;const d=await api('/api/drivers/poll','POST',{});toast(`Polled ${d.result.polled} driver(s): ${d.result.published} new, ${d.result.suppressed} suppressed`);await loadEvents()}catch(e){toast(e.message,true)}finally{$('pollDriversBtn').disabled=false}});
+
+// v0.4.2 device identity, enrollment and remote access ------------------------
+const SCOPE_HELP={read:'Read status, events and notifications',chat:'Hold a conversation',approve:'Approve actions already awaiting approval',ingest:'Send files and notes in',admin:'Enrol and revoke devices'};
+const DEFAULT_SCOPES=['read','chat'];
+
+function renderScopePicker(selected){
+  const box=$('enrollScopes');if(!box)return;
+  box.innerHTML=Object.entries(SCOPE_HELP).map(([name,help])=>
+    `<label class="scope-option" title="${esc(help)}"><input type="checkbox" value="${esc(name)}" ${selected.includes(name)?'checked':''}/><span><strong>${esc(name)}</strong><small>${esc(help)}</small></span></label>`).join('');
+}
+function selectedScopes(){return Array.from(document.querySelectorAll('#enrollScopes input:checked')).map(el=>el.value)}
+
+async function loadDevices(){
+  try{
+    const d=await api('/api/devices?events=30');S.devices=d;
+    const stats=d.stats||{};const counts=stats.devices||{};
+    $('deviceMetrics').innerHTML=[['Active',counts.active||0],['Revoked',counts.revoked||0],['Live tokens',stats.active_tokens||0],['Open codes',stats.open_enrollment_codes||0],['Device limit',stats.max_devices||'—']]
+      .map(([a,b])=>`<div class="metric"><small>${a}</small><strong>${b}</strong></div>`).join('');
+    if(!$('enrollScopes').children.length)renderScopePicker(DEFAULT_SCOPES);
+    renderDeviceList(d.devices||[]);renderAuthLog(d.auth_events||[]);
+  }catch(e){toast(e.message,true)}
+}
+
+function renderDeviceList(devices){
+  $('deviceCount').textContent=devices.filter(x=>x.active).length;
+  const box=$('deviceList');
+  if(!devices.length){box.className='list empty';box.innerHTML='No devices enrolled.';return}
+  box.className='list';
+  box.innerHTML=devices.map(x=>{
+    const seen=x.last_seen_at?new Date(x.last_seen_at*1000).toLocaleString():'never';
+    const scopes=(x.scopes||[]).map(s=>`<span class="chip on">${esc(s)}</span>`).join('');
+    return `<div class="event-item${x.active?'':' disabled-rule'}"><div class="row"><strong>${esc(x.name)}</strong><span class="workspace-stage">${x.active?'active':'revoked'}</span></div>
+      <div class="task-meta">${esc(x.platform)} · ${x.active_tokens||0} live token(s) · last seen ${esc(seen)}</div>
+      <div class="task-meta">${scopes}</div>
+      ${x.last_remote?`<div class="task-meta dim">last address ${esc(x.last_remote)}</div>`:''}
+      ${x.active?`<div class="connector-actions"><button class="tiny" onclick="editDeviceScopes('${esc(x.device_id)}')">Change scopes</button><button class="tiny" onclick="revokeDevice('${esc(x.device_id)}','${esc(x.name)}')">Revoke</button></div>`:''}</div>`;
+  }).join('');
+}
+
+function renderAuthLog(events){
+  const box=$('authLog');
+  if(!events.length){box.className='list empty';box.innerHTML='No authentication activity yet.';return}
+  const bad=new Set(['auth_failed','enrollment_failed','scope_denied','auth_throttled','enrollment_throttled']);
+  box.className='list';
+  box.innerHTML=events.map(e=>`<div class="event-item${bad.has(e.event)?' sev-warning':''}"><div class="row"><strong>${esc(e.event)}</strong><span class="workspace-stage">${esc(new Date((e.created_at||0)*1000).toLocaleTimeString())}</span></div><div class="task-meta dim">${esc(e.device_id||'—')}${e.remote?` · ${esc(e.remote)}`:''}${e.detail?` · ${esc(e.detail)}`:''}</div></div>`).join('');
+}
+
+$('enrollBtn')?.addEventListener('click',async()=>{
+  try{
+    const scopes=selectedScopes();
+    if(!scopes.length)throw new Error('Grant at least one scope');
+    $('enrollBtn').disabled=true;
+    const d=await api('/api/devices/enroll-code','POST',{device_name:$('enrollName').value.trim(),scopes});
+    const mins=Math.round((d.enrollment.expires_in_seconds||600)/60);
+    $('enrollResult').className='summary';
+    $('enrollResult').innerHTML=`<div class="enroll-code">${esc(d.enrollment.code)}</div>
+      <div class="task-meta">Grants: ${d.enrollment.scopes.map(esc).join(', ')}. Expires in ${mins} minute(s), single use.</div>
+      <div class="task-meta dim">On the phone, open DaQauntum over your private network (Tailscale) and enter this code. Creating a new code cancels this one.</div>`;
+    toast('Enrollment code created');await loadDevices();
+  }catch(e){toast(e.message,true)}finally{$('enrollBtn').disabled=false}
+});
+
+async function revokeDevice(id,name){
+  if(!confirm(`Revoke "${name}"? Its tokens stop working immediately.`))return;
+  try{await api('/api/devices/revoke','POST',{device_id:id});toast('Device revoked');await loadDevices()}catch(e){toast(e.message,true)}
+}
+window.revokeDevice=revokeDevice;
+
+async function editDeviceScopes(id){
+  const device=(S.devices?.devices||[]).find(x=>x.device_id===id);
+  if(!device)return;
+  const next=prompt(`Scopes for "${device.name}" (comma separated).\nAvailable: ${Object.keys(SCOPE_HELP).join(', ')}`,(device.scopes||[]).join(','));
+  if(next===null)return;
+  try{
+    const scopes=next.split(',').map(s=>s.trim()).filter(Boolean);
+    await api('/api/devices/update','POST',{device_id:id,scopes});
+    toast('Scopes updated');await loadDevices();
+  }catch(e){toast(e.message,true)}
+}
+window.editDeviceScopes=editDeviceScopes;
+
+$('refreshDevicesBtn')?.addEventListener('click',loadDevices);

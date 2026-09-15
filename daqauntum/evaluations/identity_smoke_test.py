@@ -250,6 +250,60 @@ def test_api_gate(root: Path) -> None:
         srv.shutdown()
 
 
+def test_mobile_client(root: Path) -> None:
+    """The phone client is served and a device can complete the whole journey."""
+    kernel = _kernel(root / "mobile")
+    srv = server_module.create_server(kernel, "127.0.0.1", 0)
+    port = srv.server_address[1]
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    base = f"http://127.0.0.1:{port}"
+    original_loopback = server_module.DaQauntumRequestHandler._is_loopback
+
+    def page(path):
+        with urllib.request.urlopen(base + path, timeout=10) as response:
+            return response.read().decode("utf-8")
+
+    def call(path, body=None, token=None):
+        data = json.dumps(body).encode() if body is not None else None
+        headers = {"Content-Type": "application/json"}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        request = urllib.request.Request(base + path, data=data,
+                                         method="POST" if data is not None else "GET", headers=headers)
+        try:
+            return 200, json.loads(urllib.request.urlopen(request, timeout=30).read())
+        except urllib.error.HTTPError as exc:
+            return exc.code, json.loads(exc.read())
+
+    try:
+        for route in ("/m", "/mobile", "/phone"):
+            body = page(route)
+            assert "Pair this device" in body, f"{route} did not serve the phone client"
+        assert "LOCAL-FIRST QUANTUM INTELLIGENCE" in page("/"), "the desktop GUI was replaced"
+
+        code = call("/api/devices/enroll-code", {"device_name": "Phone", "scopes": ["read", "chat", "approve"]})[1]["enrollment"]["code"]
+
+        server_module.DaQauntumRequestHandler._is_loopback = lambda self: False
+        status, body = call("/api/devices/redeem", {"code": code, "device_name": "iPhone", "platform": "iOS"})
+        assert status == 200, body
+        token = body["token"]
+
+        assert call("/api/chat", {"text": "hello"}, token=token)[0] == 200
+        assert call("/api/events?limit=5", token=token)[0] == 200
+        assert call("/api/remember", {"text": "Phone note", "kind": "semantic"}, token=token)[0] == 200
+        # Admin surfaces stay closed to the phone's scopes.
+        assert call("/api/devices", token=token)[0] == HTTPStatus.FORBIDDEN
+
+        # Rotation works and retires the previous token.
+        status, rotated = call("/api/devices/rotate-token", {}, token=token)
+        assert status == 200, rotated
+        assert call("/api/chat", {"text": "again"}, token=token)[0] == HTTPStatus.UNAUTHORIZED
+        assert call("/api/chat", {"text": "again"}, token=rotated["token"])[0] == 200
+    finally:
+        server_module.DaQauntumRequestHandler._is_loopback = original_loopback
+        srv.shutdown()
+
+
 def main() -> None:
     with tempfile.TemporaryDirectory() as td:
         root = Path(td)
@@ -259,6 +313,7 @@ def main() -> None:
         test_superseding_and_throttling(root)
         test_scopes_never_raise_permission(root)
         test_api_gate(root)
+        test_mobile_client(root)
         print("DaQauntum v0.4.2 device identity smoke test: PASS")
 
 

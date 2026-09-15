@@ -48,6 +48,21 @@ driver decides whether that device was ever opened for writing, via its
 allowlist and an explicit `allow_writes`. Both must agree. User approval alone
 must not reach a device that was never opened for writing.
 
+## 5c. Identity is not authority
+
+An enrolled device proves which client is calling and which API surfaces it may
+reach. It never changes what DaQauntum is permitted to do: that stays with the
+permission level. A device holding every scope, including admin, cannot make a
+forbidden action permissible, and can only approve an action DaQauntum has
+already prepared - never invent one.
+
+Credentials are never stored in usable form: session tokens are hashed, and the
+short human-typed enrollment code additionally uses a slow KDF.
+
+The loopback interface is the trusted control surface. Whether a request is
+local is decided from the socket's real peer address, never from a forwarded
+header a remote caller could set.
+
 ## 6. Device detection does not equal device capability
 
 Unknown hardware can be recorded as detected. It must not be labeled controllable until a verified adapter/capability mapping exists.

@@ -973,8 +973,13 @@ class DaQauntumRequestHandler(BaseHTTPRequestHandler):
             except Exception:
                 pass
 
+    # The phone client is a separate page so the desktop GUI stays unchanged.
+    MOBILE_ROUTES = {"m", "m/", "mobile", "mobile/", "phone", "phone/"}
+
     def _serve_static(self, path: str) -> None:
         relative = "index.html" if path in {"", "/"} else path.lstrip("/")
+        if relative in self.MOBILE_ROUTES:
+            relative = "mobile.html"
         target = (self.server.web_root / relative).resolve()
         root = self.server.web_root.resolve()
         if target != root and root not in target.parents:

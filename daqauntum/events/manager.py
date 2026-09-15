@@ -6,6 +6,7 @@ from typing import Any
 from events.bus import EventBus
 from events.models import Event, PublishResult
 from events.notifications import NotificationCenter
+from events.push import WebhookPushAdapter
 from events.rules import ReactionEngine, RuleError
 
 
@@ -45,6 +46,11 @@ class EventSystem:
         )
         self._last_reactions: list[dict[str, Any]] = []
         self.bus.subscribe(self._on_event, name="reaction-engine")
+        # Optional outbound push. Disabled unless the user configured a URL,
+        # because delivering a notification elsewhere takes it off this machine.
+        self.push = WebhookPushAdapter(self.config.get("push", {}))
+        if self.push.available()[0]:
+            self.notifications.register_adapter(self.push, name=self.push.name)
 
     # Pipeline ----------------------------------------------------------------
     def _on_event(self, event: Event) -> None:
@@ -170,6 +176,7 @@ class EventSystem:
             "bus": self.bus.stats(),
             "reactions": self.reactions.stats(),
             "notifications": self.notifications.stats(),
+            "push": self.push.stats(),
         }
 
     def overview(self, limit: int = 20) -> dict[str, Any]:

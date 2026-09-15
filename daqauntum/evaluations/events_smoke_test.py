@@ -292,6 +292,74 @@ def test_tools_and_status(kernel: DaQauntumKernel) -> None:
     assert "events" in status and "drivers" in status, sorted(status)
 
 
+def test_push_adapter() -> None:
+    """Outbound push is opt-in, filtered, and does not leak raw event data."""
+    import json
+    import os
+    import threading
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    from events.push import WebhookPushAdapter
+
+    # Off unless configured, and only http/https targets are accepted.
+    assert WebhookPushAdapter({}).available()[0] is False
+    assert WebhookPushAdapter({"enabled": True}).available()[0] is False
+    blocked = WebhookPushAdapter({"enabled": True, "url": "file:///etc/passwd"})
+    assert blocked.available()[0] is False and "http" in blocked.available()[1]
+
+    received: list[dict] = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, *args):  # noqa: D102 - silence test server logging
+            pass
+
+        def do_POST(self):  # noqa: N802
+            length = int(self.headers.get("Content-Length", 0))
+            received.append({"body": json.loads(self.rfile.read(length)), "headers": dict(self.headers)})
+            self.send_response(200)
+            self.send_header("Content-Length", "2")
+            self.end_headers()
+            self.wfile.write(b"ok")
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    port = server.server_address[1]
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    os.environ["DAQAUNTUM_TEST_PUSH_TOKEN"] = "test-token-value"
+    try:
+        with tempfile.TemporaryDirectory() as push_root:
+            kernel = DaQauntumKernel(str(_config(
+                Path(push_root) / "push",
+                events={
+                    "bus": {"debounce_seconds": 0},
+                    "push": {
+                        "enabled": True,
+                        "url": f"http://127.0.0.1:{port}/hook",
+                        "headers": {"Authorization": "Bearer ${DAQAUNTUM_TEST_PUSH_TOKEN}"},
+                        "template": {"title": "{{title}}", "message": "{{body}}"},
+                        "min_severity": "warning",
+                    },
+                },
+            )))
+            assert "webhook_push" in kernel.events.notifications.adapter_names
+
+            kernel.events.notifications.create(
+                "Freezer warm", body="probe at 12 C", severity="warning", source="driver",
+                kind="sensor_reading", payload={"device_address": "AA:BB:CC:DD:EE:FF"},
+            )
+            kernel.events.notifications.create("Routine", body="nothing wrong", severity="info")
+
+            assert len(received) == 1, f"severity filter did not hold: {len(received)} deliveries"
+            delivered = received[0]
+            assert delivered["body"] == {"title": "Freezer warm", "message": "probe at 12 C"}, delivered["body"]
+            assert delivered["headers"].get("Authorization") == "Bearer test-token-value", "env var was not expanded"
+            # The originating event's attributes must not travel to a third party.
+            assert "AA:BB:CC" not in json.dumps(delivered["body"]), "raw event attributes were pushed"
+            assert kernel.events.push.stats()["sent"] == 1
+    finally:
+        server.shutdown()
+        os.environ.pop("DAQAUNTUM_TEST_PUSH_TOKEN", None)
+
+
 def main() -> None:
     with tempfile.TemporaryDirectory() as td:
         root = Path(td)
@@ -306,6 +374,7 @@ def main() -> None:
 
         test_reactions_never_execute(root)
         test_proposal_approval(root)
+        test_push_adapter()
         print("DaQauntum v0.4.1 events + reactions smoke test: PASS")
 
 

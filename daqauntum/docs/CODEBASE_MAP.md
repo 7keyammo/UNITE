@@ -72,6 +72,17 @@ Reactions never execute. A rule may notify, queue a task, or record a tool
 proposal that the user approves through `kernel.approve_proposal`, which runs
 it through the normal `tools/registry.py` permission boundary.
 
+## Identity and remote access
+
+- `identity/models.py` - scopes, device records, token and code primitives.
+- `identity/manager.py` - enrollment, authentication, rotation, revocation, audit.
+- `interface/server.py` - `READ_SCOPES` / `WRITE_SCOPES` and the auth gate.
+- `interface/web/mobile.html` - the phone client served at `/m`.
+- `events/push.py` - optional outbound webhook notification delivery.
+
+Scopes decide which surface a device may reach. They never decide what
+DaQauntum may do; that stays with `core/permissions.py`.
+
 ## Connected information
 
 - `connectors/manager.py` - folder/feed/web/other source synchronization.

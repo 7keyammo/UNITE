@@ -4,7 +4,7 @@
 
 Develop DaQauntum as a secure, persistent, local-first intelligence service that can converse naturally, remember, learn from traceable evidence, perceive approved context, and operate digital/physical tools under explicit user control.
 
-Do not rebuild the project from scratch. Extend the existing v0.4.1-dev architecture.
+Do not rebuild the project from scratch. Extend the existing v0.4.2-dev architecture.
 
 ## Required context
 
@@ -30,6 +30,10 @@ Read before editing:
   permission level.
 - A device write requires two independent gates: the permission manager and the
   driver's own allowlist plus `allow_writes`.
+- Device identity is not authority. A scope controls which API surface a device
+  may reach; the permission level still controls what DaQauntum may do.
+- Loopback stays the trusted control surface. Never authenticate a remote
+  caller from a forwarded header.
 - Source retrieval/similarity does not establish evidentiary support.
 - Autonomous learning may write reports/traces; no autonomous weight updates or self-deployment.
 - Preserve provenance/auditability.
@@ -48,7 +52,9 @@ Work in this order unless the user explicitly changes priority:
 2. v0.4.1 Device Drivers + Event Reactions — code complete and mock-tested.
    Outstanding: validate one real sensor path on hardware, then drop the
    `-dev` suffix from `VERSION`.
-3. v0.4.2 Secure Mobile Client.
+3. v0.4.2 Secure Mobile Client — identity, auth gate, phone client, remote
+   approvals and push are done. Outstanding: phone-side capture and guided
+   Tailscale setup.
 4. v0.4.3 Native Model Lab.
 5. Multi-atom networking only after identity/security is mature.
 

@@ -1,6 +1,6 @@
 # DaQauntum - Claude Code Engineering Contract
 
-You are working on **DaQauntum v0.4.1-dev**, a local-first persistent AI operating system / agent runtime. This repository is a working prototype with real subsystems for multimodel reasoning, memory, knowledge/provenance, voice, perception, permission-gated computer/device actions, autonomous learning, connected sources, workspaces, integrations, presence sensing, and a local GUI.
+You are working on **DaQauntum v0.4.2-dev**, a local-first persistent AI operating system / agent runtime. This repository is a working prototype with real subsystems for multimodel reasoning, memory, knowledge/provenance, voice, perception, permission-gated computer/device actions, autonomous learning, connected sources, workspaces, integrations, presence sensing, and a local GUI.
 
 Your job is to **improve the existing system**, not rewrite it from scratch.
 
@@ -21,15 +21,16 @@ If a task touches a subsystem, read its implementation and matching smoke test b
 ## Non-negotiable architecture rules
 
 1. **Model intelligence is not authority.** A stronger model never gets more tool permission.
-2. **All state-changing actions go through the permission system.** Do not create a backdoor execution path.
-3. **Local means local.** If runtime/privacy policy requires local inference, do not silently fall back to hosted providers.
-4. **Sensing is not acting.** Presence/perception may observe approved signals; connection/control is separately permission-gated. An event never triggers an action on its own: reaction rules may only notify, queue a task, or record a proposal the user approves.
-5. **Discovery is not trust.** Detecting a network/device/source does not authorize connection or control.
-6. **Similarity is not evidence.** Knowledge/source provenance must remain explicit.
-7. **Learning is not self-retraining.** Autonomous learning may create reports/training traces; it must not change model weights without an explicit evaluated training pipeline and human promotion decision.
-8. **Interrupted output is not durable truth.** Partial/interrupted replies must not become structured long-term knowledge.
-9. **Every release is a complete standalone repository.** Never ship patch-only archives.
-10. **Backward compatibility is additive by default.** Database/schema migrations should preserve existing data unless a migration plan explicitly says otherwise.
+2. **Identity is not authority.** An enrolled device proves which client is calling and which API surfaces it may reach. It never raises the permission level.
+3. **All state-changing actions go through the permission system.** Do not create a backdoor execution path.
+4. **Local means local.** If runtime/privacy policy requires local inference, do not silently fall back to hosted providers.
+5. **Sensing is not acting.** Presence/perception may observe approved signals; connection/control is separately permission-gated. An event never triggers an action on its own: reaction rules may only notify, queue a task, or record a proposal the user approves.
+6. **Discovery is not trust.** Detecting a network/device/source does not authorize connection or control.
+7. **Similarity is not evidence.** Knowledge/source provenance must remain explicit.
+8. **Learning is not self-retraining.** Autonomous learning may create reports/training traces; it must not change model weights without an explicit evaluated training pipeline and human promotion decision.
+9. **Interrupted output is not durable truth.** Partial/interrupted replies must not become structured long-term knowledge.
+10. **Every release is a complete standalone repository.** Never ship patch-only archives.
+11. **Backward compatibility is additive by default.** Database/schema migrations should preserve existing data unless a migration plan explicitly says otherwise.
 
 See `docs/SECURITY_INVARIANTS.md` for the complete list.
 
@@ -98,6 +99,7 @@ PYTHONPATH=. python evaluations/demo_smoke_test.py
 PYTHONPATH=. python evaluations/gui_smoke_test.py
 PYTHONPATH=. python evaluations/events_smoke_test.py
 PYTHONPATH=. python evaluations/drivers_smoke_test.py
+PYTHONPATH=. python evaluations/identity_smoke_test.py
 ```
 
 ## Definition of done for code changes
@@ -144,6 +146,7 @@ For release work, follow `docs/RELEASE_CHECKLIST.md` and test the **freshly extr
 - `learning/` and `native_model/` - autonomous learning + future-model dataset preparation
 - `events/` - event bus, deterministic reaction rules, notifications
 - `drivers/` - optional BLE/serial/MQTT/Home Assistant device adapters
+- `identity/` - device enrollment, scoped session tokens, revocation
 - `evaluations/` - regression tests
 
 ## Before proposing a rewrite

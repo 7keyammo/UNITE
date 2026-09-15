@@ -159,13 +159,18 @@ fires once, is auditable, and cannot gain extra authority.
 
 # v0.4.2 - Secure Mobile Client
 
-- [ ] Device identity + enrollment.
-- [ ] Session/auth tokens and revocation.
-- [ ] Phone-responsive full chat/call client.
-- [ ] Remote approvals.
-- [ ] Push notification adapter.
-- [ ] Camera/file/screen context from phone.
-- [ ] Tailscale-first network path.
+> **Status:** identity, authentication, remote approvals, the phone client
+> and push delivery are implemented and covered by
+> `evaluations/identity_smoke_test.py`. What remains is phone-side capture
+> and guided Tailscale setup.
+
+- [x] Device identity + enrollment.
+- [x] Session/auth tokens and revocation.
+- [x] Phone-responsive full chat/call client.
+- [x] Remote approvals.
+- [x] Push notification adapter.
+- [ ] Camera/file/screen context from phone. (ingestion still goes through the narrower device bridge)
+- [ ] Tailscale-first network path. (adapter exists; setup is still a manual documented step)
 
 # v0.4.3 - Native Model Lab
 

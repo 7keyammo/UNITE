@@ -1,5 +1,54 @@
 # Changelog
 
+## v0.4.2-dev — Secure Mobile Client
+
+Closes the largest item in the security gaps list: remote clients had no
+device-enrollment or authentication layer at all.
+
+### Added
+
+- persistent device identity with enrollment, scopes and revocation;
+- single-use, short-lived enrollment codes minted on the trusted host;
+- session tokens with TTL, rotation and immediate cascade revocation;
+- an authentication gate on the control API with per-surface scopes;
+- a phone-responsive client at `/m` covering pairing, chat, the notification
+  inbox, remote approvals, sending notes and token rotation;
+- a Devices & Remote Access GUI view with an authentication log;
+- an optional outbound webhook push adapter (ntfy, Gotify, Pushover, Home
+  Assistant webhooks, or a personal relay);
+- `evaluations/identity_smoke_test.py`.
+
+### Security properties
+
+- **Identity is not authority.** Scopes say which surfaces a device may reach;
+  the PermissionManager still decides what DaQauntum may do. A device holding
+  every scope cannot make a forbidden action permissible: at L0 a state-changing
+  tool is refused with and without approval, and a device can only approve an
+  action DaQauntum already prepared, never invent one.
+- Session tokens are stored as SHA-256 digests; the short human-typed enrollment
+  code additionally uses PBKDF2, because it is guessable in a way a token is not.
+  Reading the database yields no working credential.
+- The enrollment code alphabet excludes every ambiguous character pair, so a
+  misread code cannot become a different valid code.
+- Minting a new enrollment code supersedes any unused one, so only the code
+  currently on screen can enrol a device.
+- Reads and writes map through separate scope tables. A shared table would let a
+  GET mapping authorize the POST on the same prefix; unmapped endpoints require
+  admin, so a new endpoint is closed to remote devices until opened on purpose.
+- Loopback remains the trusted control surface by default. The check reads the
+  socket's real peer address, never a forwarded header.
+- Authentication failures are indistinguishable to the caller; the reason stays
+  in the audit log. Failed attempts are rate-limited per address.
+- Push delivery is disabled by default and sends only title, body, severity,
+  kind and source — never the originating event's raw attributes. Credentials
+  are referenced from the environment as `${VAR}`, never stored in config.
+
+### Still open for v0.4.2
+
+- camera/file/screen capture from the phone (the narrow device bridge covers
+  ingestion today);
+- Tailscale-first setup remains a documented manual step.
+
 ## v0.4.1-dev — Device Drivers + Event Reactions
 
 Version carries a `-dev` suffix deliberately: the code milestone is complete and

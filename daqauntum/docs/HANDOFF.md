@@ -29,8 +29,8 @@ The governing principle is:
 
 ## Current release
 
-Version: `0.4.1-dev`
-Codename: **Device Drivers + Event Reactions**
+Version: `0.4.2-dev`
+Codename: **Secure Mobile Client**
 
 Current primary entrypoints:
 
@@ -42,6 +42,7 @@ python daqauntum.py
 ```
 
 Default local GUI: `http://127.0.0.1:8765/`
+Phone client: `http://<host>:8765/m` (enrol the device first; reach it over Tailscale)
 Default realtime WebSocket: port `8766`
 Optional paired device bridge: port `8767`
 
@@ -164,6 +165,12 @@ release archive. `VERSION` reads `0.4.1-dev` until then.
 
 The P0 recommendation below is unchanged and still comes first, but step 2 is
 now a single command: `PYTHONPATH=. python scripts/doctor.py`.
+
+A following pass implemented v0.4.2 identity and remote access: `identity/`
+(enrollment, scoped tokens, revocation), the control-API auth gate in
+`interface/server.py`, the phone client at `/m`, a Devices GUI view, and an
+optional webhook push adapter. Outstanding v0.4.2 work is phone-side capture
+and guided Tailscale setup.
 
 ## First coding session recommendation
 

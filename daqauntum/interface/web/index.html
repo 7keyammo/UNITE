@@ -23,6 +23,7 @@
       <button class="nav" data-view="perception" title="Eyes + Hands">◌</button>
       <button class="nav" data-view="presence" title="Presence / Sensors">◎</button>
       <button class="nav" data-view="events" title="Events / Reactions">⚡<span class="nav-badge" id="eventsBadge" hidden>0</span></button>
+      <button class="nav" data-view="devices" title="Devices / Remote Access">⛨</button>
       <button class="nav" data-view="demo" title="Guided Demo">▷</button>
       <button class="nav" data-view="system" title="System">⚙</button>
       <div class="rail-spacer"></div>
@@ -435,6 +436,36 @@
             <div class="card-head"><span>DEVICE DRIVERS</span><span class="dim">optional &amp; opt-in</span></div>
             <div id="driverList" class="list empty">Loading…</div>
             <p class="dim">A driver becomes usable only when it is enabled, its dependency is installed, and you have allowlisted at least one target. Detecting a device never authorizes connecting to it.</p>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="view-devices">
+        <div class="system-grid">
+          <section class="card glass full-card">
+            <div class="card-head"><span>DEVICES &amp; REMOTE ACCESS</span><button id="refreshDevicesBtn" class="primary">Refresh</button></div>
+            <div id="deviceMetrics" class="metric-row"></div>
+            <p class="dim">This computer is DaQauntum's trusted control surface and does not need a token. Any other device must be enrolled, and what it may reach is limited by the scopes you grant it. A device never changes DaQauntum's permission level &mdash; that stays with the L0&ndash;L4 policy.</p>
+          </section>
+
+          <section class="card glass">
+            <div class="card-head"><span>ENROL A DEVICE</span><span class="dim">single use</span></div>
+            <div class="connector-form">
+              <input id="enrollName" placeholder="Device name (e.g. Louis iPhone)" />
+              <div id="enrollScopes" class="scope-picker"></div>
+              <button id="enrollBtn" class="primary">Create enrollment code</button>
+            </div>
+            <div id="enrollResult" class="summary empty">Create a code, then open DaQauntum on the phone and enter it.</div>
+          </section>
+
+          <section class="card glass">
+            <div class="card-head"><span>ENROLLED DEVICES</span><span id="deviceCount" class="badge">0</span></div>
+            <div id="deviceList" class="list empty">No devices enrolled.</div>
+          </section>
+
+          <section class="card glass full-card">
+            <div class="card-head"><span>AUTHENTICATION LOG</span><span class="dim">most recent first</span></div>
+            <div id="authLog" class="list empty">No authentication activity yet.</div>
           </section>
         </div>
       </section>

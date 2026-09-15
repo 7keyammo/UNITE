@@ -1,7 +1,30 @@
-# DaQauntum v0.4.1-dev — Device Drivers + Event Reactions
+# DaQauntum v0.4.2-dev — Secure Mobile Client
 
-DaQauntum v0.4.1-dev builds on v0.4.0, the first release aimed at being
-**walk-up usable** rather than only developer-testable.
+DaQauntum builds on v0.4.0, the first release aimed at being **walk-up usable**
+rather than only developer-testable.
+
+v0.4.2 adds secure remote access:
+
+- **Device enrolment.** On the computer, open ⛨ Devices and create a single-use
+  code. Enter it on the phone. You choose the scopes when you create the code.
+- **A phone client** at `/m` covering chat, a notification inbox, remote
+  approvals, sending notes, and rotating its own token.
+- **An authenticated control API.** Loopback stays trusted — this computer is
+  DaQauntum's control surface. Anything else must present a device token, and
+  scopes limit which surfaces it can reach.
+- **Revocation that works.** Revoking a device kills its tokens immediately,
+  even if the device is lost.
+- **Optional push notifications** to any webhook you control (ntfy, Gotify,
+  Pushover, Home Assistant). Off by default.
+
+Identity is not authority: an enrolled device says *who is calling*, never *what
+DaQauntum may do*. A phone holding every scope still cannot make an action the
+permission level forbids, and can only approve actions DaQauntum has already
+prepared.
+
+Reach DaQauntum from your phone over Tailscale or another authenticated private
+network. The authentication layer is defence in depth, not a reason to expose
+the control API publicly.
 
 > **Developer handoff edition:** This repository includes `CLAUDE.md`, `AGENTS.md`, `TASKS.md`, and `docs/HANDOFF.md` so Claude Code and Codex can continue development without the original chat history. Start there before editing code.
  It keeps the persistent server, realtime/full-duplex voice, structured memory, knowledge graph, source intelligence, connected folders/phone/web, autonomous learning, native-model seed corpus, workspaces/agents, integrations, screen perception, and permission-gated computer control from v0.3.x.
@@ -243,6 +266,7 @@ PYTHONPATH=. python evaluations/demo_smoke_test.py
 PYTHONPATH=. python evaluations/gui_smoke_test.py
 PYTHONPATH=. python evaluations/events_smoke_test.py
 PYTHONPATH=. python evaluations/drivers_smoke_test.py
+PYTHONPATH=. python evaluations/identity_smoke_test.py
 ```
 
 Check the whole host in one pass:
@@ -257,5 +281,8 @@ PYTHONPATH=. python scripts/doctor.py --redact   # safe to share
 DaQauntum is a working local-first assistant/runtime that can chat through a configured real model, speak/listen, maintain memory, learn autonomously, observe approved local context, discover nearby radios on request, ingest external information, perceive screen/camera context, react to approved events, and prepare permission-gated actions.
 
 It is **not yet** a universal autonomous ambient agent that can pair with arbitrary hardware, understand every BLE GATT profile, control unknown devices, or safely roam an open network without explicit boundaries.
+
+The phone client is a served page, not an installable app: there is no offline
+cache and no phone-side camera or file capture yet.
 
 The v0.4.1 drivers are implemented adapters, not proven device control. Each becomes usable only once its optional dependency is installed, the device is explicitly allowlisted, and — for BLE — a GATT profile declares what may be read. None has been validated against real hardware yet. Describe them as implemented and awaiting hardware validation.

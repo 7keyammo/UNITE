@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<meta name="theme-color" content="#0a0d18" />
+<title>DaQauntum</title>
+<style>
+:root{
+  --bg:#0a0d18;--card:rgba(255,255,255,.045);--line:rgba(255,255,255,.09);
+  --text:#e8ecf7;--dim:#96a0b8;--accent:#7cffbe;--accent2:#5b7cff;
+  --warn:#ffab4d;--bad:#ff7787;
+  --top:env(safe-area-inset-top,0px);--bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;overscroll-behavior-y:contain}
+.hidden{display:none!important}
+header{position:sticky;top:0;z-index:5;padding:calc(var(--top) + 12px) 16px 12px;background:rgba(10,13,24,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+header h1{font-size:1rem;margin:0;letter-spacing:.08em;font-weight:700}
+header .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
+header .dot.off{background:var(--bad)}
+header .spacer{flex:1}
+main{padding:16px;padding-bottom:calc(84px + var(--bottom))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.card h2{font-size:.7rem;letter-spacing:.14em;color:var(--dim);margin:0 0 10px;text-transform:uppercase;font-weight:700}
+label{display:block;font-size:.72rem;letter-spacing:.1em;color:var(--dim);margin:10px 0 4px;text-transform:uppercase}
+input,textarea,select{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);background:rgba(0,0,0,.28);color:var(--text);font:inherit}
+input:focus,textarea:focus{outline:2px solid var(--accent2);outline-offset:-1px}
+textarea{resize:vertical;min-height:52px}
+button{width:100%;min-height:48px;padding:13px;border-radius:10px;border:0;background:var(--accent2);color:#fff;font:inherit;font-weight:600;margin-top:10px;cursor:pointer}
+button.ghost{background:rgba(255,255,255,.07);color:var(--text)}
+button.danger{background:rgba(255,119,135,.18);color:var(--bad)}
+button:disabled{opacity:.5}
+button.inline{width:auto;min-height:36px;padding:8px 14px;margin:6px 6px 0 0;font-size:.85rem}
+.code-input{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:1.5rem;letter-spacing:.24em;text-align:center;text-transform:uppercase}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:rgba(10,13,24,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line);padding-bottom:var(--bottom)}
+nav button{flex:1;margin:0;border-radius:0;background:none;color:var(--dim);font-size:.66rem;letter-spacing:.06em;padding:10px 4px;min-height:60px;display:flex;flex-direction:column;align-items:center;gap:4px}
+nav button.active{color:var(--accent)}
+nav button span.ico{font-size:1.15rem;line-height:1}
+nav button .badge{position:absolute;transform:translate(16px,-6px);background:var(--warn);color:#1a1200;border-radius:9px;font-size:.6rem;font-weight:700;padding:1px 5px}
+.msg{padding:11px 13px;border-radius:13px;margin-bottom:9px;max-width:88%;white-space:pre-wrap;word-wrap:break-word;overflow-wrap:anywhere}
+.msg.me{background:var(--accent2);color:#fff;margin-left:auto;border-bottom-right-radius:4px}
+.msg.dq{background:rgba(255,255,255,.06);border:1px solid var(--line);border-bottom-left-radius:4px}
+.msg.err{background:rgba(255,119,135,.14);border:1px solid rgba(255,119,135,.3)}
+.meta{font-size:.68rem;color:var(--dim);margin:-4px 0 12px}
+#chatLog{min-height:40vh}
+.composer{position:sticky;bottom:calc(72px + var(--bottom));display:flex;gap:8px;align-items:flex-end;background:var(--bg);padding-top:8px}
+.composer textarea{flex:1;margin:0}
+.composer button{width:auto;margin:0;padding:13px 18px;flex:none}
+.item{border:1px solid var(--line);border-left:3px solid var(--line);border-radius:11px;padding:11px;margin-bottom:9px;background:rgba(255,255,255,.03)}
+.item.warning{border-left-color:var(--warn)}
+.item.critical{border-left-color:var(--bad)}
+.item.notice{border-left-color:var(--accent2)}
+.item strong{display:block;margin-bottom:3px}
+.item .sub{font-size:.76rem;color:var(--dim)}
+.empty{color:var(--dim);text-align:center;padding:26px 10px;font-size:.88rem}
+.toast{position:fixed;left:16px;right:16px;bottom:calc(84px + var(--bottom));z-index:20;background:#1a2036;border:1px solid var(--line);border-radius:11px;padding:13px;text-align:center;font-size:.88rem}
+.toast.bad{border-color:rgba(255,119,135,.5);color:var(--bad)}
+.chip{display:inline-block;background:rgba(124,255,190,.13);color:var(--accent);border-radius:9px;padding:2px 8px;font-size:.68rem;margin:3px 4px 0 0}
+.note{font-size:.78rem;color:var(--dim);line-height:1.55}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="dot" id="statusDot"></span>
+  <h1>DaQauntum</h1>
+  <span class="spacer"></span>
+  <span class="note" id="deviceLabel"></span>
+</header>
+
+<main>
+  <!-- Enrollment -->
+  <section id="viewEnroll">
+    <div class="card">
+      <h2>Pair this device</h2>
+      <p class="note">On the computer running DaQauntum, open <strong>⛨ Devices</strong> and create an enrollment code. Codes are single use and expire quickly.</p>
+      <label for="code">Enrollment code</label>
+      <input id="code" class="code-input" inputmode="text" autocapitalize="characters" autocomplete="one-time-code" maxlength="9" placeholder="XXXX-XXXX" />
+      <label for="deviceName">Name this device</label>
+      <input id="deviceName" placeholder="My phone" autocomplete="off" />
+      <button id="pairBtn">Pair with DaQauntum</button>
+      <p class="note" id="pairHint">Reach DaQauntum over your own private network — Tailscale is the supported path. Do not expose it to the public internet.</p>
+    </div>
+  </section>
+
+  <!-- Chat -->
+  <section id="viewChat" class="hidden">
+    <div id="chatLog"></div>
+    <div class="composer">
+      <textarea id="chatInput" rows="1" placeholder="Talk to DaQauntum…"></textarea>
+      <button id="sendBtn">Send</button>
+    </div>
+  </section>
+
+  <!-- Inbox -->
+  <section id="viewInbox" class="hidden">
+    <div class="card">
+      <h2>Notifications</h2>
+      <div id="notifications"><div class="empty">Nothing waiting.</div></div>
+    </div>
+    <div class="card">
+      <h2>Awaiting your approval</h2>
+      <div id="approvals"><div class="empty">Nothing to approve.</div></div>
+      <p class="note">Approving runs the action through DaQauntum's normal permission checks. This device cannot approve anything DaQauntum would otherwise refuse.</p>
+    </div>
+    <div class="card">
+      <h2>Recent events</h2>
+      <div id="events"><div class="empty">No events yet.</div></div>
+    </div>
+  </section>
+
+  <!-- Capture -->
+  <section id="viewSend" class="hidden">
+    <div class="card">
+      <h2>Send a note</h2>
+      <label for="noteText">Note</label>
+      <textarea id="noteText" rows="5" placeholder="Something to remember…"></textarea>
+      <button id="noteBtn">Send to DaQauntum</button>
+      <p class="note">Notes are saved into DaQauntum's structured memory on the host.</p>
+    </div>
+    <div class="card">
+      <h2>This device</h2>
+      <div id="deviceInfo" class="note"></div>
+      <button id="rotateBtn" class="ghost">Rotate this device's token</button>
+      <button id="forgetBtn" class="danger">Sign out on this device</button>
+      <p class="note">Signing out clears the token stored here. To cut off a lost device, revoke it from the computer instead — that works even if the device is gone.</p>
+    </div>
+  </section>
+</main>
+
+<nav id="tabs" class="hidden">
+  <button data-view="chat" class="active"><span class="ico">⌁</span>Chat</button>
+  <button data-view="inbox"><span class="ico">⚡</span>Inbox<span class="badge hidden" id="inboxBadge">0</span></button>
+  <button data-view="send"><span class="ico">✎</span>Send</button>
+</nav>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const STORE = "dq_mobile_v1";
+
+let state = { token: null, device: null, scopes: [], view: "chat", polling: null };
+
+function loadSession(){
+  try { return JSON.parse(localStorage.getItem(STORE) || "null"); } catch (e) { return null; }
+}
+function saveSession(value){
+  try { localStorage.setItem(STORE, JSON.stringify(value)); } catch (e) { /* private mode */ }
+}
+function clearSession(){
+  try { localStorage.removeItem(STORE); } catch (e) { /* private mode */ }
+}
+
+function toast(message, bad){
+  const el = document.createElement("div");
+  el.className = "toast" + (bad ? " bad" : "");
+  el.textContent = message;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+function esc(value){
+  return String(value == null ? "" : value).replace(/[&<>"']/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+async function api(path, method, body){
+  const headers = { "Content-Type": "application/json" };
+  if (state.token) headers["Authorization"] = "Bearer " + state.token;
+  const response = await fetch(path, {
+    method: method || "GET",
+    headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  let data = {};
+  try { data = await response.json(); } catch (e) { /* non-JSON error page */ }
+  if (response.status === 401 && state.token) {
+    // The host revoked or expired this device. Drop the dead token rather than
+    // retrying with it, and send the user back to pairing.
+    signOut(true);
+    throw new Error("This device is no longer paired. Enrol it again.");
+  }
+  if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
+  return data;
+}
+
+function can(scope){ return state.scopes.includes(scope); }
+
+function setOnline(ok){ $("statusDot").classList.toggle("off", !ok); }
+
+// Views ----------------------------------------------------------------------
+function showEnroll(){
+  $("viewEnroll").classList.remove("hidden");
+  ["viewChat", "viewInbox", "viewSend"].forEach(id => $(id).classList.add("hidden"));
+  $("tabs").classList.add("hidden");
+  $("deviceLabel").textContent = "";
+}
+
+function setView(name){
+  state.view = name;
+  $("viewEnroll").classList.add("hidden");
+  $("tabs").classList.remove("hidden");
+  $("viewChat").classList.toggle("hidden", name !== "chat");
+  $("viewInbox").classList.toggle("hidden", name !== "inbox");
+  $("viewSend").classList.toggle("hidden", name !== "send");
+  document.querySelectorAll("#tabs button").forEach(b =>
+    b.classList.toggle("active", b.dataset.view === name));
+  if (name === "inbox") loadInbox();
+  if (name === "send") renderDeviceInfo();
+}
+
+document.querySelectorAll("#tabs button").forEach(b =>
+  b.addEventListener("click", () => setView(b.dataset.view)));
+
+// Enrollment -----------------------------------------------------------------
+$("code").addEventListener("input", event => {
+  const raw = event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+  event.target.value = raw.length > 4 ? raw.slice(0, 4) + "-" + raw.slice(4) : raw;
+});
+
+$("pairBtn").addEventListener("click", async () => {
+  const code = $("code").value.trim();
+  if (!code) return toast("Enter the code shown on your computer", true);
+  $("pairBtn").disabled = true;
+  try {
+    const result = await api("/api/devices/redeem", "POST", {
+      code,
+      device_name: $("deviceName").value.trim() || "Phone",
+      platform: navigator.platform || "mobile",
+    });
+    state.token = result.token;
+    state.device = result.device;
+    state.scopes = result.scopes || [];
+    saveSession({ token: state.token, device: state.device, scopes: state.scopes });
+    $("code").value = "";
+    toast("Paired with DaQauntum");
+    start();
+  } catch (error) {
+    toast(error.message, true);
+  } finally {
+    $("pairBtn").disabled = false;
+  }
+});
+
+// Chat -----------------------------------------------------------------------
+function addMessage(who, text, cls){
+  const el = document.createElement("div");
+  el.className = "msg " + (cls || who);
+  el.textContent = text;
+  $("chatLog").appendChild(el);
+  el.scrollIntoView({ block: "end" });
+  return el;
+}
+
+async function send(){
+  const input = $("chatInput");
+  const text = input.value.trim();
+  if (!text) return;
+  if (!can("chat")) return toast("This device is not permitted to chat", true);
+  input.value = "";
+  input.style.height = "auto";
+  addMessage("me", text);
+  const thinking = addMessage("dq", "…");
+  $("sendBtn").disabled = true;
+  try {
+    const data = await api("/api/chat", "POST", { text });
+    const result = data.result || {};
+    thinking.textContent = result.response || "(no response)";
+    const bits = [];
+    if (result.provider) bits.push(result.provider + (result.model ? " / " + result.model : ""));
+    if (result.latency_ms) bits.push(Math.round(result.latency_ms) + " ms");
+    if (bits.length) {
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = bits.join(" · ");
+      $("chatLog").appendChild(meta);
+    }
+    if ((result.pending_approvals || []).length) {
+      toast("An action needs your approval — see Inbox");
+      refreshBadge();
+    }
+    setOnline(true);
+  } catch (error) {
+    thinking.className = "msg err";
+    thinking.textContent = error.message;
+    setOnline(false);
+  } finally {
+    $("sendBtn").disabled = false;
+  }
+}
+
+$("sendBtn").addEventListener("click", send);
+$("chatInput").addEventListener("input", event => {
+  event.target.style.height = "auto";
+  event.target.style.height = Math.min(event.target.scrollHeight, 160) + "px";
+});
+$("chatInput").addEventListener("keydown", event => {
+  if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); send(); }
+});
+
+// Inbox ----------------------------------------------------------------------
+async function loadInbox(){
+  if (!can("read")) {
+    $("notifications").innerHTML = '<div class="empty">This device cannot read notifications.</div>';
+    return;
+  }
+  try {
+    const data = await api("/api/events?limit=20");
+    setOnline(true);
+    renderNotifications(data.notifications || []);
+    renderApprovals(data.proposals || []);
+    renderEvents(data.events || []);
+    updateBadge((data.notifications || []).length + (data.proposals || []).length);
+  } catch (error) {
+    setOnline(false);
+    toast(error.message, true);
+  }
+}
+
+function renderNotifications(items){
+  const box = $("notifications");
+  if (!items.length) { box.innerHTML = '<div class="empty">Nothing waiting.</div>'; return; }
+  box.innerHTML = items.map(n => `
+    <div class="item ${esc(n.severity)}">
+      <strong>${esc(n.title)}</strong>
+      ${n.body ? `<div class="sub">${esc(n.body)}</div>` : ""}
+      <div class="sub">${esc(n.source)} · ${esc(n.kind)}</div>
+      <button class="inline ghost" onclick="ackNotification(${n.id})">Mark read</button>
+    </div>`).join("");
+}
+
+async function ackNotification(id){
+  try { await api("/api/notifications/status", "POST", { notification_id: id, status: "read" }); loadInbox(); }
+  catch (error) { toast(error.message, true); }
+}
+window.ackNotification = ackNotification;
+
+function renderApprovals(items){
+  const box = $("approvals");
+  if (!items.length) { box.innerHTML = '<div class="empty">Nothing to approve.</div>'; return; }
+  const allowed = can("approve");
+  box.innerHTML = items.map(p => `
+    <div class="item notice">
+      <strong>${esc(p.tool)}</strong>
+      ${p.reason ? `<div class="sub">${esc(p.reason)}</div>` : ""}
+      <div class="sub">${esc(JSON.stringify(p.arguments || {}))}</div>
+      <div class="sub">Needs L${p.required_level == null ? "?" : p.required_level} · has not run</div>
+      ${allowed
+        ? `<button class="inline" onclick="resolveProposal(${p.id},'approve')">Approve &amp; run</button>
+           <button class="inline ghost" onclick="resolveProposal(${p.id},'reject')">Reject</button>`
+        : `<div class="sub">This device cannot approve actions. Approve it on the computer.</div>`}
+    </div>`).join("");
+}
+
+async function resolveProposal(id, decision){
+  if (decision === "approve" && !confirm("Run this action now?")) return;
+  try {
+    const data = await api("/api/events/proposals/resolve", "POST", { proposal_id: id, decision });
+    toast((data.result && data.result.message) || "Done");
+    loadInbox();
+  } catch (error) { toast(error.message, true); }
+}
+window.resolveProposal = resolveProposal;
+
+function renderEvents(items){
+  const box = $("events");
+  if (!items.length) { box.innerHTML = '<div class="empty">No events yet.</div>'; return; }
+  box.innerHTML = items.slice(0, 12).map(e => `
+    <div class="item ${esc(e.severity)}">
+      <strong>${esc(e.kind)}</strong>
+      <div class="sub">${esc(e.message || "")}</div>
+      <div class="sub">${esc(e.source)} · ${esc(e.subject)}${e.repeat_count ? ` · ${e.repeat_count} repeat(s)` : ""}</div>
+    </div>`).join("");
+}
+
+function updateBadge(count){
+  const badge = $("inboxBadge");
+  badge.textContent = count > 99 ? "99+" : String(count);
+  badge.classList.toggle("hidden", !count);
+}
+
+async function refreshBadge(){
+  if (!state.token || !can("read")) return;
+  try {
+    const data = await api("/api/events?limit=1");
+    const pending = (data.stats && data.stats.notifications && data.stats.notifications.pending) || 0;
+    const proposals = (data.stats && data.stats.reactions && data.stats.reactions.pending_proposals) || 0;
+    updateBadge(pending + proposals);
+    setOnline(true);
+  } catch (error) { setOnline(false); }
+}
+
+// Send / device --------------------------------------------------------------
+$("noteBtn").addEventListener("click", async () => {
+  const text = $("noteText").value.trim();
+  if (!text) return toast("Write something first", true);
+  $("noteBtn").disabled = true;
+  try {
+    await api("/api/remember", "POST", { text, kind: "semantic" });
+    $("noteText").value = "";
+    toast("Saved to DaQauntum's memory");
+  } catch (error) { toast(error.message, true); }
+  finally { $("noteBtn").disabled = false; }
+});
+
+function renderDeviceInfo(){
+  const device = state.device || {};
+  $("deviceInfo").innerHTML = `
+    <div><strong>${esc(device.name || "This device")}</strong></div>
+    <div>${esc(device.platform || "")} · enrolled ${device.enrolled_at ? esc(new Date(device.enrolled_at * 1000).toLocaleDateString()) : "—"}</div>
+    <div style="margin-top:6px">${state.scopes.map(s => `<span class="chip">${esc(s)}</span>`).join("")}</div>`;
+}
+
+$("rotateBtn").addEventListener("click", async () => {
+  try {
+    const data = await api("/api/devices/rotate-token", "POST", {});
+    state.token = data.token;
+    saveSession({ token: state.token, device: state.device, scopes: state.scopes });
+    toast("Token rotated");
+  } catch (error) { toast(error.message, true); }
+});
+
+function signOut(silent){
+  clearSession();
+  state = { token: null, device: null, scopes: [], view: "chat", polling: null };
+  if (state.polling) clearInterval(state.polling);
+  showEnroll();
+  if (!silent) toast("Signed out on this device");
+}
+
+$("forgetBtn").addEventListener("click", () => {
+  if (confirm("Sign out on this device? The token stored here is cleared.")) signOut(false);
+});
+
+// Boot -----------------------------------------------------------------------
+function start(){
+  $("deviceLabel").textContent = (state.device && state.device.name) || "";
+  setView("chat");
+  if ($("chatLog").children.length === 0) {
+    addMessage("dq", "Connected. I'm running on your DaQauntum host — memory, events and permissions all live there.");
+  }
+  refreshBadge();
+  if (state.polling) clearInterval(state.polling);
+  state.polling = setInterval(refreshBadge, 45000);
+}
+
+const saved = loadSession();
+if (saved && saved.token) {
+  state.token = saved.token;
+  state.device = saved.device || null;
+  state.scopes = saved.scopes || [];
+  start();
+} else {
+  showEnroll();
+}
+</script>
+</body>
+</html>

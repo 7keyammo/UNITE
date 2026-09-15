@@ -5,7 +5,7 @@
 - Real-host setup is still multi-step; installation needs consolidation.
 - Voice depends on optional local model setup and host audio configuration.
 - Real-model latency can be high. `scripts/benchmark_latency.py` now measures TTFT and total turn time, but the tuning decision still has to be made on the target hardware.
-- GUI/browser session is not yet an authenticated mobile client.
+- ~~GUI/browser session is not yet an authenticated mobile client.~~ Resolved in v0.4.2-dev: an enrolled phone client is served at `/m`.
 - ~~Diagnostics are fragmented across multiple doctor scripts.~~ Resolved in v0.4.1-dev by `scripts/doctor.py`; the focused doctors remain for single-subsystem checks.
 
 ## Runtime / concurrency
@@ -40,10 +40,20 @@
 
 ## Security / identity
 
-- No mature device-enrollment/authentication layer for remote clients yet.
-- No dedicated encrypted secrets vault.
+- ~~No mature device-enrollment/authentication layer for remote clients yet.~~ Resolved in v0.4.2-dev: enrollment codes, scoped devices, hashed session tokens and revocation.
+- No dedicated encrypted secrets vault. Device tokens and enrollment codes are hashed at rest, but API keys still live in environment variables.
 - Audit log tamper resistance is not production hardened.
 - Public-internet exposure is intentionally not a supported default.
+
+## Remote access
+
+- The phone client is a served page, not an installable PWA: no offline cache,
+  no install prompt, no background push registration.
+- Camera, file and screen capture from the phone still go through the narrower
+  device bridge rather than the authenticated client.
+- Push delivery is outbound webhook only; there is no APNs/FCM adapter.
+- Tailscale setup remains a manual documented step rather than guided setup.
+- Token rotation is manual; there is no automatic refresh before expiry.
 
 ## Knowledge / memory
 

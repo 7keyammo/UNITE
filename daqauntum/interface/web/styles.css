@@ -62,3 +62,12 @@ body[data-dq-state="listening"] .atom-core .nucleus{box-shadow:0 0 55px rgba(73,
 .event-item .chip.off{background:rgba(255,255,255,.06);color:#9aa3b8}
 #view-events .list{max-height:340px;overflow:auto}
 #view-events .full-card .list{max-height:420px}
+
+/* v0.4.2 device enrollment */
+.scope-picker{display:grid;gap:6px;margin:8px 0}
+.scope-option{display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,.03);cursor:pointer}
+.scope-option input{margin-top:3px}
+.scope-option span{display:flex;flex-direction:column}
+.scope-option small{color:#9aa3b8;font-size:.7rem}
+.enroll-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:2rem;letter-spacing:.18em;font-weight:700;color:#7cffbe;padding:10px 0;text-align:center;user-select:all}
+#view-devices .list{max-height:360px;overflow:auto}

@@ -372,6 +372,21 @@ events:
     enabled: true
     min_severity: info
     max_notifications: 1000
+  # Outbound push notifications. Off by default: sending a notification to an
+  # external service takes it off this machine. Works with any endpoint that
+  # accepts an HTTP POST (ntfy, Gotify, Pushover, a Home Assistant webhook).
+  # Keep secrets in the environment and reference them as ${VAR}.
+  # Only title, body, severity, kind and source are sent - never the raw event
+  # attributes behind the notification.
+  push:
+    enabled: false
+    url: ""              # e.g. https://ntfy.sh/${DAQAUNTUM_NTFY_TOPIC}
+    method: POST
+    headers: {}          # e.g. {Authorization: "Bearer ${PUSH_TOKEN}"}
+    template: null       # e.g. {title: "{{title}}", message: "{{body}}"}
+    min_severity: warning
+    include_body: true
+    timeout_seconds: 8
 
 # v0.4.1 device drivers. Every driver is opt-in and disabled by default.
 # Discovering a device never authorizes connecting to it or writing to it, and

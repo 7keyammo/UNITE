@@ -152,9 +152,12 @@ REQUIRED = [
     "evaluations/identity_smoke_test.py",
     "identity/manager.py",
     "identity/models.py",
+    "identity/__init__.py",
+    "events/push.py",
+    "interface/web/mobile.html",
 ]
 
-EXPECTED_VERSION = "0.4.1-dev"
+EXPECTED_VERSION = "0.4.2-dev"
 
 
 def main() -> None:

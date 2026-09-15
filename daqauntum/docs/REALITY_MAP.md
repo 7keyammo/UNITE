@@ -54,7 +54,19 @@ This file prevents architecture diagrams from being mistaken for configured real
 | Flux hardware design | MCP-ready / PROTOTYPE | Flux MCP setup | Do not claim autonomous PCB control |
 | Native DaQauntum fine-tuned model | PLANNED | GPU/training pipeline/base model | Dataset preparation only today |
 | Multi-atom network | PLANNED | identity/security/network protocol | No peer-memory sharing yet |
-| Production mobile client | PLANNED | mobile/PWA work | Phone bridge is not this |
+| Phone client (chat/inbox/approvals) | IMPLEMENTED / PROTOTYPE | enrolled device + private network | Served at `/m`; not an app-store app or a PWA |
+| Device identity + enrollment | IMPLEMENTED | none | Single-use codes, hashed tokens, scopes, revocation |
+| Remote API authentication | IMPLEMENTED | none | Loopback trusted by default; remote needs a device token |
+| Remote approvals | IMPLEMENTED | device with `approve` scope | Approval never raises the permission level |
+| Outbound push notifications | IMPLEMENTED / OPTIONAL | a webhook endpoint you control | Off by default; sends a narrow payload only |
+| Production mobile client | PARTIAL | mobile/PWA work | Phone client exists; offline support, install prompt and capture are not done |
+
+## v0.4.2 status note
+
+Device identity, the API auth gate and the phone client are implemented and
+covered by `evaluations/identity_smoke_test.py`. Remote access is still expected
+to arrive over Tailscale or another authenticated private transport: the auth
+layer is defence in depth, not a licence to expose the control API publicly.
 
 ## v0.4.1 status note
 

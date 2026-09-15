@@ -10,7 +10,7 @@ import yaml
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "name": "DaQauntum",
-    "version": "0.4.1-dev",
+    "version": "0.4.2-dev",
     "permission_level": 2,
     "models": {
         "fallback_to_mock": True,
@@ -183,6 +183,19 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "enabled": True,
             "min_severity": "info",
             "max_notifications": 1000,
+        },
+        # Outbound push is off by default: delivering a notification to an
+        # external service takes it off this machine. Put secrets in the
+        # environment and reference them as ${VAR} here.
+        "push": {
+            "enabled": False,
+            "url": "",
+            "method": "POST",
+            "headers": {},
+            "template": None,
+            "min_severity": "warning",
+            "include_body": True,
+            "timeout_seconds": 8,
         },
     },
     "identity": {

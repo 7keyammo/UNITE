@@ -25,6 +25,7 @@ PYTHONPATH=. python evaluations/smoke_test.py
 | GUI/API changes | `evaluations/gui_smoke_test.py` |
 | Event bus/reaction rules/notifications | `evaluations/events_smoke_test.py` |
 | Device drivers/BLE/serial/MQTT/Home Assistant | `evaluations/drivers_smoke_test.py` |
+| Device identity/auth gate/mobile client | `evaluations/identity_smoke_test.py` |
 
 ## Full matrix
 
@@ -43,6 +44,7 @@ PYTHONPATH=. python evaluations/demo_smoke_test.py
 PYTHONPATH=. python evaluations/gui_smoke_test.py
 PYTHONPATH=. python evaluations/events_smoke_test.py
 PYTHONPATH=. python evaluations/drivers_smoke_test.py
+PYTHONPATH=. python evaluations/identity_smoke_test.py
 ```
 
 ## Missing test maturity
