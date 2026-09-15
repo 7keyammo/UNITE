@@ -304,6 +304,80 @@ def test_mobile_client(root: Path) -> None:
         srv.shutdown()
 
 
+def test_duplex_requires_auth(root: Path) -> None:
+    """The realtime WebSocket is gated like the HTTP API.
+
+    The duplex channel carries the same conversation as /api/chat, so leaving it
+    open while the HTTP API is authenticated would be a door left unlocked next
+    to one that was locked. This matters specifically when the host is started
+    with --allow-lan, where both bind to a non-loopback address.
+    """
+    import asyncio
+
+    try:
+        import websockets
+    except ImportError:  # pragma: no cover - websockets is a base requirement
+        print("  (skipped duplex auth: websockets not installed)")
+        return
+
+    from realtime.duplex import DuplexServerThread, FullDuplexHub
+
+    kernel = _kernel(root / "duplex")
+    identity = kernel.identity
+    chat_token = identity.redeem_enrollment_code(
+        identity.create_enrollment_code(scopes=["read", "chat"])["code"], remote="10.0.0.5"
+    )["token"]
+    read_token = identity.redeem_enrollment_code(
+        identity.create_enrollment_code(scopes=["read"])["code"], remote="10.0.0.6"
+    )["token"]
+    chat_device = identity.list_devices()[1]["device_id"]
+
+    original_loopback = FullDuplexHub._peer_is_loopback
+    FullDuplexHub._peer_is_loopback = staticmethod(lambda websocket: False)
+    server = DuplexServerThread(kernel, "127.0.0.1", 0, kernel.config.get("full_duplex", {})).start()
+    port = list(server.server.sockets)[0].getsockname()[1]
+
+    async def probe(first_message=None, binary=None):
+        """Returns the frame type after the handshake: 'hello' or 'error'."""
+        try:
+            async with websockets.connect(f"ws://127.0.0.1:{port}", open_timeout=8) as websocket:
+                opening = json.loads(await asyncio.wait_for(websocket.recv(), 8))
+                if opening.get("type") != "auth_required":
+                    return f"unexpected:{opening.get('type')}"
+                if binary is not None:
+                    await websocket.send(binary)
+                elif first_message is not None:
+                    await websocket.send(json.dumps(first_message))
+                return json.loads(await asyncio.wait_for(websocket.recv(), 8)).get("type")
+        except Exception as exc:
+            return f"closed:{type(exc).__name__}"
+
+    async def run_all():
+        return {
+            "no token": await probe({"type": "ping"}),
+            "bad token": await probe({"type": "auth", "token": "dq_not_real"}),
+            "audio before auth": await probe(binary=b"\x00" * 64),
+            "read-only token": await probe({"type": "auth", "token": read_token}),
+            "valid chat token": await probe({"type": "auth", "token": chat_token}),
+        }
+
+    try:
+        results = asyncio.run(run_all())
+        assert results["valid chat token"] == "hello", results
+        for label in ("no token", "bad token", "audio before auth", "read-only token"):
+            assert results[label] != "hello", f"duplex accepted a connection with: {label}"
+
+        # Revoking the device closes the realtime channel too.
+        identity.revoke_device(chat_device)
+        assert asyncio.run(probe({"type": "auth", "token": chat_token})) != "hello", "a revoked device kept realtime access"
+    finally:
+        FullDuplexHub._peer_is_loopback = original_loopback
+        try:
+            server.stop()
+        except Exception:
+            pass
+
+
 def main() -> None:
     with tempfile.TemporaryDirectory() as td:
         root = Path(td)
@@ -314,6 +388,7 @@ def main() -> None:
         test_scopes_never_raise_permission(root)
         test_api_gate(root)
         test_mobile_client(root)
+        test_duplex_requires_auth(root)
         print("DaQauntum v0.4.2 device identity smoke test: PASS")
 
 

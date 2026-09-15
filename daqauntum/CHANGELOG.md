@@ -43,6 +43,17 @@ device-enrollment or authentication layer at all.
   kind and source — never the originating event's raw attributes. Credentials
   are referenced from the environment as `${VAR}`, never stored in config.
 
+### Fixed
+
+- The realtime duplex WebSocket accepted any peer. With the HTTP API now
+  authenticated, that left an unlocked door beside a locked one whenever the
+  host was started with `--allow-lan`, where both bind to a non-loopback
+  address. Remote duplex connections now present a token as their first
+  message - a browser cannot set headers on a WebSocket, and a token in a URL
+  leaks into logs - and need the `chat` scope. Audio sent before authentication
+  is refused outright, so nothing is buffered, transcribed or answered for an
+  unauthenticated peer.
+
 ### Still open for v0.4.2
 
 - camera/file/screen capture from the phone (the narrow device bridge covers

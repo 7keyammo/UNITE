@@ -95,6 +95,9 @@ class FullDuplexHub:
         self.partial_stt_interval_ms = int(cfg.get("partial_stt_interval_ms", 900))
         self.partial_stt_min_ms = int(cfg.get("partial_stt_min_ms", 650))
         self.max_audio_bytes = int(cfg.get("max_audio_bytes", kernel.voice.max_audio_bytes))
+        # How long a remote client has to present its token before the
+        # connection is closed. Short, because it is one message.
+        self.auth_timeout_seconds = max(2.0, min(float(cfg.get("auth_timeout_seconds", 10)), 60.0))
         self.registry = DuplexSessionRegistry(int(cfg.get("keep_recent_sessions", 32)))
 
     @staticmethod
@@ -107,13 +110,91 @@ class FullDuplexHub:
             wav.writeframes(raw_pcm)
         return out.getvalue()
 
+    @staticmethod
+    def _peer_is_loopback(websocket) -> bool:
+        """Whether the WebSocket peer is on this machine.
+
+        Read from the socket's real peer address, never a header, for the same
+        reason the HTTP gate does: a remote caller controls its own headers.
+        """
+        try:
+            host = str(websocket.remote_address[0])
+        except Exception:
+            return False
+        return host in {"127.0.0.1", "::1", "::ffff:127.0.0.1"} or host.startswith("127.")
+
+    async def _authorize(self, websocket) -> tuple[bool, str]:
+        """Authenticate a duplex connection before any audio is accepted.
+
+        The realtime channel carries the same conversation as /api/chat, so it
+        needs the same protection. A browser cannot set headers on a WebSocket
+        and a token in a URL leaks into logs, so a remote client sends its token
+        as the first control message instead.
+        """
+        identity = getattr(self.kernel, "identity", None)
+        if identity is None or not identity.enabled:
+            return True, "identity-disabled"
+        loopback = self._peer_is_loopback(websocket)
+        if loopback and not identity.require_auth_for_loopback:
+            return True, "loopback"
+        if not loopback and not identity.require_auth_for_remote:
+            return True, "remote-auth-disabled"
+
+        remote = ""
+        try:
+            remote = str(websocket.remote_address[0])
+        except Exception:
+            pass
+        await self._send(websocket, {"type": "auth_required", "message": "Send {\"type\":\"auth\",\"token\":\"...\"} to continue."})
+        try:
+            raw = await asyncio.wait_for(websocket.recv(), timeout=self.auth_timeout_seconds)
+        except asyncio.TimeoutError:
+            identity.audit("duplex_auth_timeout", remote=remote)
+            return False, "auth-timeout"
+        except Exception:
+            return False, "auth-closed"
+        if isinstance(raw, bytes):
+            # Audio before authentication is refused outright: nothing is
+            # buffered, transcribed or answered for an unauthenticated peer.
+            identity.audit("duplex_auth_failed", remote=remote, detail="audio before auth")
+            return False, "audio-before-auth"
+        try:
+            event = json.loads(raw)
+        except (TypeError, ValueError):
+            return False, "bad-auth-message"
+        if not isinstance(event, dict) or event.get("type") != "auth":
+            return False, "expected-auth-message"
+
+        result = identity.authenticate(str(event.get("token") or ""), remote=remote)
+        if not result.ok:
+            return False, "unauthenticated"
+        if not result.has_scope("chat"):
+            identity.audit(
+                "scope_denied",
+                device_id=result.device.device_id if result.device else None,
+                remote=remote,
+                detail="duplex needs chat",
+            )
+            return False, "missing-chat-scope"
+        identity.audit("duplex_authenticated", device_id=result.device.device_id if result.device else None, remote=remote)
+        return True, "authenticated"
+
     async def handler(self, websocket) -> None:
+        allowed, reason = await self._authorize(websocket)
+        if not allowed:
+            # The client is told only that authentication is required; the
+            # specific reason stays in the audit log.
+            await self._send(websocket, {"type": "error", "error": "Authentication required for remote realtime access."})
+            await websocket.close(code=4401, reason="unauthorized")
+            return
+
         session = self.registry.create()
         partial_task: asyncio.Task | None = None
         await self._send(websocket, {
             "type": "hello",
             "session": session.as_dict(),
             "version": self.kernel.config.get("version", "0.4.0"),
+            "authenticated": reason == "authenticated",
             "capabilities": {
                 "binary_pcm16": True,
                 "partial_stt": self.partial_stt_enabled,

@@ -27,7 +27,7 @@ This file prevents architecture diagrams from being mistaken for configured real
 | Phone upload bridge | IMPLEMENTED / PROTOTYPE | same LAN + explicit bridge start | Ingestion only, not full mobile client |
 | Local STT | IMPLEMENTED | faster-whisper or whisper.cpp + model | User's photographed machine was not configured yet |
 | TTS | IMPLEMENTED | system voice or Piper | Quality varies by host |
-| Full-duplex transport | IMPLEMENTED / PROTOTYPE | local browser + voice stack | Not equivalent to telephony/PSTN |
+| Full-duplex transport | IMPLEMENTED / PROTOTYPE | local browser + voice stack | Not equivalent to telephony/PSTN; remote peers must authenticate |
 | Autonomous daily learning | IMPLEMENTED | persistent host/timers + usable model | Creates reports/traces; no weight updates |
 | 7 AM / 7 PM jobs | IMPLEMENTED | systemd user timers installed | Must be installed on real host |
 | Screen capture | IMPLEMENTED | browser/OS permission | Explicit opt-in |

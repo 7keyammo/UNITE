@@ -319,6 +319,78 @@ class Doctor:
                 writes_allowed=driver["writes_allowed"],
             )
 
+    def check_remote_access(self) -> None:
+        """Report the remote-access posture honestly, including the gaps."""
+        if not self.kernel:
+            return
+        identity = getattr(self.kernel, "identity", None)
+        if identity is None:
+            self.add("Remote access", "Device identity", WARN, "not available in this build")
+            return
+        stats = identity.stats()
+        counts = stats.get("devices") or {}
+        active = int(counts.get("active", 0))
+        self.add(
+            "Remote access", "Device identity",
+            PASS if stats["enabled"] else FAIL,
+            f"{active} active device(s), {counts.get('revoked', 0)} revoked, {stats['active_tokens']} live token(s)",
+            "Set identity.enabled: true so remote clients must authenticate." if not stats["enabled"] else "",
+        )
+        self.add(
+            "Remote access", "Remote authentication",
+            PASS if stats["require_auth_for_remote"] else FAIL,
+            "required for non-loopback callers" if stats["require_auth_for_remote"]
+            else "NOT required - any host that can reach the port has full control",
+            "Set identity.require_auth_for_remote: true.",
+        )
+        if stats.get("open_enrollment_codes"):
+            self.add(
+                "Remote access", "Enrollment codes", WARN,
+                f"{stats['open_enrollment_codes']} unused code is still live",
+                "Codes expire on their own; create a new one to supersede it if it was not used deliberately.",
+            )
+
+        gui = self.kernel.config.get("gui", {})
+        host = str(gui.get("host", "127.0.0.1"))
+        loopback_bound = host.startswith("127.") or host in {"localhost", "::1"}
+        self.add(
+            "Remote access", "GUI bind address",
+            PASS if loopback_bound else WARN,
+            f"{host}:{gui.get('port', 8765)}" + ("" if loopback_bound else " - reachable beyond this machine"),
+            "Prefer the default loopback bind and reach DaQauntum over Tailscale rather than exposing the port.",
+        )
+
+        failures = [
+            item for item in identity.recent_auth_events(limit=100)
+            if item.get("event") in {"auth_failed", "enrollment_failed", "auth_throttled", "enrollment_throttled", "scope_denied"}
+        ]
+        if failures:
+            self.add(
+                "Remote access", "Recent auth failures",
+                WARN if len(failures) > 5 else INFO,
+                f"{len(failures)} in the last 100 auth events",
+                "Check the Devices view. Repeated failures from an unknown address are worth investigating.",
+            )
+        else:
+            self.add("Remote access", "Recent auth failures", PASS, "none recorded")
+
+        push = (self.kernel.events.stats().get("push") or {})
+        self.add(
+            "Remote access", "Push notifications",
+            PASS if push.get("available") else INFO,
+            push.get("detail", "not configured"),
+            "" if push.get("available") else "Optional. Point events.push.url at a webhook you control.",
+        )
+
+        bridge = self.kernel.config.get("device_bridge", {})
+        self.add(
+            "Remote access", "Device bridge",
+            INFO if not bridge.get("enabled") else WARN,
+            "disabled" if not bridge.get("enabled")
+            else f"enabled on {bridge.get('host')}:{bridge.get('port')} - a separate, narrower ingestion surface",
+            "The bridge has its own pairing and is intentionally narrower than the control API.",
+        )
+
     def check_integrations(self) -> None:
         if not self.kernel:
             return
@@ -382,6 +454,7 @@ class Doctor:
         self.check_voice()
         self.check_memory()
         self.check_presence_and_events()
+        self.check_remote_access()
         self.check_integrations()
         self.check_service()
         self.check_release()
