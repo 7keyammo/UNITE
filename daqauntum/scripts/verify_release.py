@@ -170,6 +170,8 @@ REQUIRED = [
     "evaluations/latency_smoke_test.py",
     "docs/REAL_HOST_PLAN.md",
     "QUICKSTART.md",
+    "computer/task.py",
+    "evaluations/computer_task_smoke_test.py",
 ]
 
 EXPECTED_VERSION = "0.4.2-dev"

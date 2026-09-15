@@ -772,3 +772,73 @@ async function loadReadiness(){
 applyMode(currentMode());
 setTimeout(loadReadiness,600);
 setInterval(()=>{ if(document.body.classList.contains('mode-daily'))loadReadiness() },30000);
+
+// Guided Eyes + Hands task ----------------------------------------------------
+// The whole point of this flow is that each stage is visible and the action
+// waits for the user. The UI mirrors that: nothing here runs a step implicitly.
+const VERDICT_LABEL={pass:'PASS',fail:'FAIL',uncertain:'UNCERTAIN'};
+
+async function guidedLook(){
+  const goal=$('guidedGoal').value.trim();
+  if(!goal)return toast('Describe what you want DaQauntum to do',true);
+  try{
+    $('guidedLookBtn').disabled=true;
+    const d=await api('/api/computer/task/start','POST',{goal});
+    S.guidedTask=d.task;renderGuided(d.task);
+    $('guidedProposeBtn').disabled=false;
+    toast('DaQauntum looked at your screen');
+  }catch(e){
+    // A missing frame is the common case and deserves a real instruction.
+    toast(e.message,true);
+    if(/share/i.test(e.message))$('guidedPanel').innerHTML='<div class="task-meta">Capture a screen frame first — DaQauntum never captures your screen by itself.</div>';
+  }finally{$('guidedLookBtn').disabled=false}
+}
+
+async function guidedPropose(){
+  const task=S.guidedTask;if(!task)return;
+  const instruction=prompt('What single action should DaQauntum propose?',task.goal||'');
+  if(instruction===null)return;
+  try{
+    const d=await api('/api/computer/task/propose','POST',{task_id:task.id,instruction});
+    S.guidedTask=d.task;renderGuided(d.task);
+  }catch(e){toast(e.message,true)}
+}
+
+async function guidedDecide(decision){
+  const task=S.guidedTask;if(!task)return;
+  if(decision==='approve'&&!confirm(`Run this action now?\n\n${task.proposal?.instruction||''}\n\nIt executes through the normal permission checks.`))return;
+  const reason=decision==='approve'?'approved from the guided task panel':'declined';
+  try{
+    const d=await api('/api/computer/task/decision','POST',{task_id:task.id,decision,reason});
+    S.guidedTask=d.task;renderGuided(d.task);
+    await refreshStatus();
+  }catch(e){toast(e.message,true)}
+}
+window.guidedDecide=guidedDecide;
+
+function renderGuided(task){
+  const box=$('guidedPanel');box.className='summary';
+  const parts=[`<div class="row"><strong>${esc(task.goal)}</strong><span class="workspace-stage">${esc(task.status)}</span></div>`];
+  if(task.observation)parts.push(`<div class="task-meta"><strong>Sees:</strong> ${esc(task.observation.slice(0,600))}</div>`);
+  if(task.proposal){
+    parts.push(`<div class="event-item sev-notice"><div class="row"><strong>Proposed: ${esc(task.proposal.tool)}</strong><span class="workspace-stage">${esc(task.permission_outcome||'')}</span></div>
+      <div class="task-meta">${esc(task.proposal.instruction)}</div>
+      <div class="task-meta dim">Needs L${task.proposal.required_level??'?'} · ${esc(task.permission_reason||'')}</div>
+      ${task.status==='awaiting_approval'?`<div class="connector-actions"><button class="tiny" onclick="guidedDecide('approve')">Approve &amp; run</button><button class="tiny" onclick="guidedDecide('reject')">Reject</button></div>`:''}</div>`);
+  }
+  if(task.verdict){
+    const cls=task.verdict==='pass'?'on':(task.verdict==='fail'?'off':'degraded');
+    parts.push(`<div class="event-item sev-${task.verdict==='fail'?'critical':(task.verdict==='pass'?'notice':'warning')}">
+      <div class="row"><strong>Verification</strong><span class="ready-chip ${cls}"><i class="dot ${cls}"></i>${esc(VERDICT_LABEL[task.verdict]||task.verdict)}</span></div>
+      <div class="task-meta">${esc((task.verification||'').slice(0,600))}</div>
+      ${task.after_frame_id?`<div class="task-meta dim">Verified from fresh capture #${esc(task.after_frame_id)}</div>`:'<div class="task-meta dim">No post-action capture was available, so this is not a confirmation.</div>'}</div>`);
+  }
+  if((task.steps||[]).length){
+    parts.push(`<div class="task-meta dim"><strong>Audit trail</strong></div>`);
+    parts.push('<div class="list">'+task.steps.map(s=>`<div class="task-meta dim">· <code>${esc(s.kind)}</code> ${esc(String(s.detail).slice(0,180))}</div>`).join('')+'</div>');
+  }
+  box.innerHTML=parts.join('');
+}
+
+$('guidedLookBtn')?.addEventListener('click',guidedLook);
+$('guidedProposeBtn')?.addEventListener('click',guidedPropose);

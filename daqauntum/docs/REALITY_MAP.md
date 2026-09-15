@@ -36,7 +36,8 @@ This file prevents architecture diagrams from being mistaken for configured real
 | Camera capture | IMPLEMENTED | camera/browser permission | Explicit opt-in |
 | Vision analysis | IMPLEMENTED | local multimodal Ollama or hosted provider | Local mode must not cloud-fallback |
 | Computer control | IMPLEMENTED / PROTOTYPE | Open Interpreter/adapter | Must remain permission-gated |
-| Visual post-action verification | IMPLEMENTED / PROTOTYPE | vision route | PASS/FAIL/UNCERTAIN, not infallible |
+| Visual post-action verification | IMPLEMENTED | vision route + a fresh capture | Verdict comes from an independent capture, not from the adapter that acted; fails closed to UNCERTAIN |
+| Guided Eyes + Hands task | IMPLEMENTED / TESTED_WITH_MOCKS | shared screen + computer-use adapter | look → propose → approve → act → verify, fully audited; never validated on a real desktop |
 | Passive presence sensing | IMPLEMENTED / PROTOTYPE | host OS support | Observes approved local telemetry only |
 | Event bus + reaction rules | IMPLEMENTED | none | Deterministic matching; rules only notify, queue or propose |
 | Notification queue | IMPLEMENTED | none | Local queue; mobile push adapter is PLANNED |

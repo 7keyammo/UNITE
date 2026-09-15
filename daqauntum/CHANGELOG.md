@@ -9,6 +9,8 @@
 - four-stage voice latency measurement (hear / think / speak / total) recorded
   from live spoken turns, with the bottleneck named;
 - Daily and Lab interface modes;
+- the guided Eyes + Hands task: look → propose → approve → act → verify,
+  with every stage recorded as an audit trail;
 - a readiness strip stating plainly what works on this machine right now;
 - Obsidian two-way long-term memory (`obsidian/`);
 - the atom brain structure visualization, rendered from live subsystem state;
@@ -21,6 +23,9 @@
   as independent corroboration.
 - The visualization renders degraded subsystems honestly rather than showing a
   green light for an adapter that has never worked on this host.
+- Guided-task verification uses an independent capture rather than asking the
+  computer-use adapter whether its own action worked, and fails closed to
+  UNCERTAIN when there is no fresh frame or no vision route.
 
 ## v0.4.2-dev — Secure Mobile Client
 

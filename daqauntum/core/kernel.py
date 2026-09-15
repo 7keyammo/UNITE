@@ -30,7 +30,7 @@ from connectors import ConnectorManager
 from workspaces import WorkspaceManager, AgentWorkbench, ObsidianExporter
 from integrations import IntegrationManager
 from perception import PerceptionManager
-from computer import ComputerController
+from computer import ComputerController, GuidedTaskManager
 from presence import PresenceManager
 from events import EventSystem
 from drivers import DriverManager
@@ -95,6 +95,10 @@ class DaQauntumKernel:
         )
         self.tools.event_system = self.events
         self.tools.driver_manager = self.drivers
+        # The guided look -> propose -> approve -> act -> verify flow.
+        # Built after the tool registry because approval executes through it.
+        self.computer_tasks = GuidedTaskManager(self, self.computer, self.perception,
+                                                self.config.get("computer", {}))
         # Device identity answers "which client is calling"; it never answers
         # "what is DaQauntum allowed to do". That stays with self.permissions.
         self.identity = IdentityManager(self.memory, self.config.get("identity", {}))
@@ -184,6 +188,7 @@ class DaQauntumKernel:
             "native_model": self.model_lab.stats(),
             "obsidian": self.obsidian_memory.stats(),
             "latency": self.latency.stats(),
+            "computer_tasks": self.computer_tasks.stats(),
             "demo": self.demo.readiness(),
             "tools": [item["name"] for item in self.tools.descriptions()],
             "pending_approvals": list(self.pending),

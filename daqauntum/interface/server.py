@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
+from computer.task import TaskError
 from identity import IdentityError
 
 
@@ -48,6 +49,7 @@ READ_SCOPES: tuple[tuple[str, str], ...] = (
     ("/api/integrations", "read"),
     ("/api/events", "read"),
     ("/api/drivers", "read"),
+    ("/api/computer/tasks", "read"),
     ("/api/notifications", "read"),
     ("/api/demo", "read"),
     ("/api/calls", "chat"),
@@ -69,6 +71,7 @@ WRITE_SCOPES: tuple[tuple[str, str], ...] = (
     ("/api/obsidian", "admin"),
     ("/api/approve", "approve"),
     ("/api/events/proposals/resolve", "approve"),
+    ("/api/computer/task/decision", "approve"),
     # Acknowledging notifications and queued tasks is part of consuming them,
     # so it rides with "read" rather than needing a wider scope.
     ("/api/notifications/status", "read"),
@@ -213,6 +216,9 @@ class DaQauntumRequestHandler(BaseHTTPRequestHandler):
                 self._stream_ndjson(self.server.kernel.calls.add_turn_stream(session_id, text, turn_id=turn.id))
                 return
             self._handle_api_post(parsed.path, payload)
+        except TaskError as exc:
+            # An invalid guided-task transition is a refusal, not a server fault.
+            self._json({"ok": False, "error": str(exc)}, HTTPStatus.CONFLICT)
         except IdentityError as exc:
             # A bad or expired enrollment code, or a throttled caller. This is a
             # refusal, not a server fault, and the message is already safe to
@@ -278,6 +284,13 @@ class DaQauntumRequestHandler(BaseHTTPRequestHandler):
                 "devices": kernel.identity.list_devices(),
                 "stats": kernel.identity.stats(),
                 "auth_events": kernel.identity.recent_auth_events(limit=int((query.get("events") or ["25"])[0])),
+            })
+            return
+        if path == "/api/computer/tasks":
+            self._json({
+                "ok": True,
+                "tasks": kernel.computer_tasks.list(limit=int((query.get("limit") or ["10"])[0])),
+                "stats": kernel.computer_tasks.stats(),
             })
             return
         if path == "/api/obsidian":
@@ -623,6 +636,41 @@ class DaQauntumRequestHandler(BaseHTTPRequestHandler):
                 self._json({"ok": False, "error": f"No device {device_id}"}, HTTPStatus.NOT_FOUND)
                 return
             self._json({"ok": True, "device": device, "devices": kernel.identity.list_devices()})
+            return
+
+        if path == "/api/computer/task/start":
+            # Requires a frame the user already shared; DaQauntum never captures
+            # the screen on its own.
+            task = kernel.computer_tasks.start(
+                str(payload.get("goal", "")),
+                frame_id=payload.get("frame_id"),
+                operation_mode=kernel.runtime.operation_mode,
+            )
+            self._json({"ok": True, "task": task})
+            return
+
+        if path == "/api/computer/task/propose":
+            # Records what DaQauntum wants to do. Nothing runs here.
+            task = kernel.computer_tasks.propose(
+                int(payload.get("task_id", 0)), str(payload.get("instruction", "")),
+            )
+            self._json({"ok": True, "task": task})
+            return
+
+        if path == "/api/computer/task/decision":
+            task_id = int(payload.get("task_id", 0))
+            decision = str(payload.get("decision", "reject")).strip().lower()
+            decided_by = str(payload.get("decided_by", "")).strip() or "user"
+            reason = str(payload.get("reason", ""))
+            if decision == "approve":
+                task = kernel.computer_tasks.approve(
+                    task_id, decided_by=decided_by, reason=reason,
+                    verify_frame_id=payload.get("verify_frame_id"),
+                    operation_mode=kernel.runtime.operation_mode,
+                )
+            else:
+                task = kernel.computer_tasks.reject(task_id, decided_by=decided_by, reason=reason)
+            self._json({"ok": True, "task": task, "stats": kernel.computer_tasks.stats()})
             return
 
         if path == "/api/capture/photo":

@@ -366,6 +366,16 @@
             <button id="analyzeFrameBtn" class="primary">Analyze latest frame</button>
             <div id="visionResult" class="summary empty">Capture a screen or camera frame first.</div>
           </section>
+          <section class="card glass full-card">
+            <div class="card-head"><span>GUIDED TASK</span><span class="dim" id="guidedStatus">look → propose → approve → act → verify</span></div>
+            <p class="dim">Share your screen first. DaQauntum looks, describes what it sees, proposes one action, and waits. Nothing runs until you approve it, and the result is verified from a fresh capture &mdash; not from asking the adapter whether its own action worked.</p>
+            <textarea id="guidedGoal" rows="2" placeholder="Example: open the browser and navigate to the safe test page"></textarea>
+            <div class="connector-actions">
+              <button id="guidedLookBtn" class="primary">1 · Look at my screen</button>
+              <button id="guidedProposeBtn" class="ghost" disabled>2 · Propose an action</button>
+            </div>
+            <div id="guidedPanel" class="summary empty">Capture a screen frame, describe the goal, then press Look.</div>
+          </section>
           <section class="card glass">
             <div class="card-head"><span>COMPUTER CONTROL</span><span class="dim">hands</span></div>
             <label>AUTONOMY

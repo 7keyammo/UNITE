@@ -113,7 +113,7 @@ intended.** Every step 2–10 of the target experience depends on it.
 | Vision routing (local or hosted) | `IMPLEMENTED` | No multimodal model configured here |
 | Computer-use adapter | `IMPLEMENTED` | `BLOCKED` — Open Interpreter absent, no desktop session |
 | Post-action visual verification | `TESTED_WITH_MOCKS` | PASS/FAIL/UNCERTAIN logic tested; never run against a real desktop |
-| End-to-end look → propose → approve → act → verify | `NOT_IMPLEMENTED` | Pieces exist; the single reliable vertical slice does not |
+| End-to-end look → propose → approve → act → verify | `TESTED_WITH_MOCKS` | `evaluations/computer_task_smoke_test.py`; needs a real desktop to reach `HARDWARE_TESTED` |
 
 ### Identity / remote access
 
@@ -167,8 +167,9 @@ intended.** Every step 2–10 of the target experience depends on it.
    breakdown, "it feels slow" cannot be turned into a fix.
 2. **Daily mode / Lab mode.** Talking to DaQauntum should not require
    understanding its architecture.
-3. **One reliable Eyes + Hands slice**, orchestrated and mock-tested here, then
-   validated on your desktop.
+3. ~~One reliable Eyes + Hands slice~~ — built and mock-tested. It now needs a
+   real desktop with Open Interpreter and a vision model to reach
+   `HARDWARE_TESTED`.
 4. Real-hardware validation of one driver path, which is the last open v0.4.1
    acceptance criterion.
 
