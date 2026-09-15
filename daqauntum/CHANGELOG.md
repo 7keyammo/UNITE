@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased — Real-host convergence
+
+### Added
+
+- `docs/REAL_HOST_PLAN.md`, a maturity audit separating what exists in code from
+  what works on a real machine;
+- four-stage voice latency measurement (hear / think / speak / total) recorded
+  from live spoken turns, with the bottleneck named;
+- Daily and Lab interface modes;
+- a readiness strip stating plainly what works on this machine right now;
+- Obsidian two-way long-term memory (`obsidian/`);
+- the atom brain structure visualization, rendered from live subsystem state;
+- `evaluations/latency_smoke_test.py` and `evaluations/obsidian_smoke_test.py`.
+
+### Notes
+
+- Latency rows store timings only, never transcript, response or audio.
+- DaQauntum never re-indexes its own Obsidian export, so it cannot cite itself
+  as independent corroboration.
+- The visualization renders degraded subsystems honestly rather than showing a
+  green light for an adapter that has never worked on this host.
+
 ## v0.4.2-dev — Secure Mobile Client
 
 Closes the largest item in the security gaps list: remote clients had no

@@ -169,6 +169,7 @@ REQUIRED = [
     "realtime/timeline.py",
     "evaluations/latency_smoke_test.py",
     "docs/REAL_HOST_PLAN.md",
+    "QUICKSTART.md",
 ]
 
 EXPECTED_VERSION = "0.4.2-dev"
