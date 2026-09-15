@@ -22,6 +22,7 @@
       <button class="nav" data-view="integrations" title="Integration Hub">⧉</button>
       <button class="nav" data-view="perception" title="Eyes + Hands">◌</button>
       <button class="nav" data-view="presence" title="Presence / Sensors">◎</button>
+      <button class="nav" data-view="events" title="Events / Reactions">⚡<span class="nav-badge" id="eventsBadge" hidden>0</span></button>
       <button class="nav" data-view="demo" title="Guided Demo">▷</button>
       <button class="nav" data-view="system" title="System">⚙</button>
       <div class="rail-spacer"></div>
@@ -387,6 +388,53 @@
           <section class="card glass">
             <div class="card-head"><span>SENSOR / DEVICE BUS</span><span class="dim">local read-only</span></div>
             <div id="sensorStatus" class="summary">Loading…</div>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="view-events">
+        <div class="system-grid">
+          <section class="card glass full-card">
+            <div class="card-head">
+              <span>EVENTS &amp; REACTIONS</span>
+              <div>
+                <button id="pollDriversBtn" class="ghost">Poll drivers now</button>
+                <button id="refreshEventsBtn" class="primary">Refresh</button>
+              </div>
+            </div>
+            <div id="eventMetrics" class="metric-row"></div>
+            <p class="dim">Approved sources publish observations here. Deterministic rules may notify you, queue a task, or propose an action &mdash; a rule never runs anything itself, and a proposed action waits for your approval.</p>
+          </section>
+
+          <section class="card glass">
+            <div class="card-head"><span>NOTIFICATIONS</span><div><span id="notificationCount" class="badge">0</span> <button id="dismissAllBtn" class="ghost tiny">Dismiss all</button></div></div>
+            <div id="notificationList" class="list empty">No notifications.</div>
+          </section>
+
+          <section class="card glass">
+            <div class="card-head"><span>PROPOSED ACTIONS</span><span class="dim">approval required</span></div>
+            <div id="proposalList" class="list empty">No proposed actions.</div>
+          </section>
+
+          <section class="card glass full-card">
+            <div class="card-head"><span>RECENT EVENTS</span><span class="dim" id="eventSuppressed">—</span></div>
+            <div id="eventList" class="list empty">No events yet.</div>
+          </section>
+
+          <section class="card glass">
+            <div class="card-head"><span>REACTION RULES</span><span class="dim">deterministic</span></div>
+            <div id="ruleList" class="list empty">No rules.</div>
+          </section>
+
+          <section class="card glass">
+            <div class="card-head"><span>QUEUED TASKS</span><span class="dim">from reactions</span></div>
+            <div id="reactionTaskList" class="list empty">No queued tasks.</div>
+          </section>
+
+          <section class="card glass full-card">
+            <div class="card-head"><span>DEVICE DRIVERS</span><span class="dim">optional &amp; opt-in</span></div>
+            <div id="driverList" class="list empty">Loading…</div>
+            <p class="dim">A driver becomes usable only when it is enabled, its dependency is installed, and you have allowlisted at least one target. Detecting a device never authorizes connecting to it.</p>
           </section>
         </div>
       </section>

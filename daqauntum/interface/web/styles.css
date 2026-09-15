@@ -46,3 +46,19 @@ body[data-dq-state="listening"] .atom-core .nucleus{box-shadow:0 0 55px rgba(73,
 #view-presence .summary{line-height:1.55}
 @media(max-width:980px){.demo-layout{grid-template-columns:1fr}}
 .quick-actions{display:flex;gap:8px;flex-wrap:wrap;padding:10px 14px 0}.quick-actions button{min-height:34px}
+
+/* v0.4.1 events, reactions and drivers */
+.rail .nav{position:relative}
+.nav-badge{position:absolute;top:2px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#5b7cff;color:#fff;font-size:.62rem;line-height:16px;font-weight:700;text-align:center}
+.nav-badge.warn{background:#ffab4d;color:#1a1200}
+.event-item{padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-left:3px solid rgba(255,255,255,.18);margin-bottom:8px}
+.event-item .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.event-item.sev-notice{border-left-color:#5b7cff}
+.event-item.sev-warning{border-left-color:#ffab4d}
+.event-item.sev-critical{border-left-color:#ff7787}
+.event-item.disabled-rule{opacity:.55}
+.event-item .chip{display:inline-block;margin:2px 4px 0 0;padding:1px 7px;border-radius:9px;font-size:.66rem}
+.event-item .chip.on{background:rgba(124,255,190,.14);color:#7cffbe}
+.event-item .chip.off{background:rgba(255,255,255,.06);color:#9aa3b8}
+#view-events .list{max-height:340px;overflow:auto}
+#view-events .full-card .list{max-height:420px}

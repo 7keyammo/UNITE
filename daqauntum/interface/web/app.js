@@ -86,7 +86,7 @@ async function attachDuplexToCall(){if(!S.call||!duplexEnabled())return false;tr
 
 function toast(msg,error=false){const t=$('toast');t.textContent=msg;t.className='toast show'+(error?' error':'');setTimeout(()=>t.className='toast',2600)}
 function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function setView(name){document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('active',b.dataset.view===name));document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));if(name==='memory') loadMemory();if(name==='learning') loadLearning();if(name==='connect') loadConnectors();if(name==='workspaces') loadWorkspaces();if(name==='integrations') loadIntegrations();if(name==='perception') loadPerception();if(name==='presence') loadPresence();if(name==='demo') loadDemo();if(name==='system') loadSystem();if(name==='universe') loadUniverse()}
+function setView(name){document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('active',b.dataset.view===name));document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));if(name==='memory') loadMemory();if(name==='learning') loadLearning();if(name==='connect') loadConnectors();if(name==='workspaces') loadWorkspaces();if(name==='integrations') loadIntegrations();if(name==='perception') loadPerception();if(name==='presence') loadPresence();if(name==='events') loadEvents();if(name==='demo') loadDemo();if(name==='system') loadSystem();if(name==='universe') loadUniverse()}
 document.querySelectorAll('.nav').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
 
 function modelText(x){return x?`${x.provider} / ${x.model}`:'—'}
@@ -97,7 +97,7 @@ async function refreshStatus(){
     $('projectInput').value=st.memory?.active_project||'';renderApprovals(st.pending_approvals||[]);
     const rt=st.runtime||{};$('operationMode').value=rt.operation_mode||'auto';$('cognitionMode').value=rt.cognition_mode||'auto';if($('bargeIn'))$('bargeIn').checked=rt.modules?.barge_in!==false;$('modePill').textContent=`${(rt.operation_mode||'auto').toUpperCase()} · ${(rt.cognition_mode||'auto').toUpperCase()}`;
     const a=st.universe?.atom||{};$('atomLevel').textContent=`LEVEL ${a.level||1}`;$('atomXp').textContent=`${a.experience||0} XP`;
-    if(st.universe){S.universe=st.universe;window.DQUniverse?.setData(st.universe)}updateDuplexChip()
+    if(st.universe){S.universe=st.universe;window.DQUniverse?.setData(st.universe)}updateDuplexChip();renderEventsBadge(st.events)
   }catch(e){$('onlineDot').style.background='#ff7787';toast(e.message,true)}
 }
 function renderApprovals(ids){$('approvalCount').textContent=ids.length;const box=$('approvalList');if(!ids.length){box.className='list empty';box.innerHTML='No pending actions.';return}box.className='list';box.innerHTML=ids.map(id=>`<div class="approval-item"><strong>${esc(id)}</strong><div class="dim">State-changing action waiting for approval.</div><button onclick="approveAction('${esc(id)}')">Approve</button></div>`).join('')}
@@ -431,3 +431,95 @@ $('quickCallBtn')?.addEventListener('click',()=>{setView('call');setTimeout(()=>
 $('quickDemoBtn')?.addEventListener('click',()=>{setView('demo');setTimeout(()=>$('startDemoBtn')?.click(),150)});
 $('quickSenseBtn')?.addEventListener('click',async()=>{setView('presence');try{await api('/api/presence/refresh','POST',{});await loadPresence();toast('DaQauntum refreshed its passive awareness')}catch(e){toast(e.message,true)}});
 $('quickCapabilitiesBtn')?.addEventListener('click',()=>{const input=$('chatInput');input.value='Give me a concise live capability report: what can you do on this machine right now, what is configured, and what should I try first?';$('chatForm').requestSubmit()});
+
+// v0.4.1 events, reactions, notifications and device drivers -------------------
+const SEVERITY_ICON={debug:'·',info:'•',notice:'◆',warning:'▲',critical:'⨯'};
+
+function renderEventsBadge(events){
+  const badge=$('eventsBadge');if(!badge)return;
+  const pending=Number(events?.notifications?.pending||0);
+  badge.textContent=pending>99?'99+':String(pending);badge.hidden=pending===0;
+  badge.className='nav-badge'+(events?.notifications?.highest_pending_severity==='critical'||events?.notifications?.highest_pending_severity==='warning'?' warn':'');
+}
+
+async function loadEvents(){
+  try{
+    const d=await api('/api/events?limit=30');S.events=d;
+    const bus=d.stats?.bus||{},rx=d.stats?.reactions||{},nf=d.stats?.notifications||{};
+    $('eventMetrics').innerHTML=[['Events',bus.events||0],['Suppressed',bus.suppressed_repeats||0],['Rules',`${rx.rules_enabled||0}/${rx.rules||0}`],['Fires',rx.fires||0],['Pending',nf.pending||0],['Proposals',rx.pending_proposals||0]].map(([a,b])=>`<div class="metric"><small>${a}</small><strong>${b}</strong></div>`).join('');
+    $('eventSuppressed').textContent=`${bus.suppressed_repeats||0} duplicate observations suppressed`;
+    renderNotifications(d.notifications||[]);renderEventRows(d.events||[]);renderRules(d.rules||[]);
+    renderReactionTasks(d.tasks||[]);renderProposals(d.proposals||[]);renderEventsBadge(d.stats);
+    await loadDrivers();
+  }catch(e){toast(e.message,true)}
+}
+
+function renderNotifications(items){
+  $('notificationCount').textContent=items.length;const box=$('notificationList');
+  if(!items.length){box.className='list empty';box.innerHTML='No notifications.';return}
+  box.className='list';
+  box.innerHTML=items.map(n=>`<div class="event-item sev-${esc(n.severity)}"><div class="row"><strong>${SEVERITY_ICON[n.severity]||'•'} ${esc(n.title)}</strong><span class="workspace-stage">${esc(n.severity)}</span></div>${n.body?`<div class="task-meta">${esc(n.body)}</div>`:''}<div class="task-meta dim">${esc(n.source)} · ${esc(n.kind)} · ${esc(n.created_at||'')}</div><div class="connector-actions"><button class="tiny" onclick="setNotificationStatus(${n.id},'read')">Mark read</button><button class="tiny" onclick="setNotificationStatus(${n.id},'dismissed')">Dismiss</button></div></div>`).join('');
+}
+async function setNotificationStatus(id,status){try{await api('/api/notifications/status','POST',{notification_id:id,status});await loadEvents()}catch(e){toast(e.message,true)}}
+window.setNotificationStatus=setNotificationStatus;
+
+function renderEventRows(items){
+  const box=$('eventList');
+  if(!items.length){box.className='list empty';box.innerHTML='No events yet.';return}
+  box.className='list';
+  box.innerHTML=items.map(e=>`<div class="event-item sev-${esc(e.severity)}"><div class="row"><strong>${SEVERITY_ICON[e.severity]||'•'} ${esc(e.kind)}</strong><span class="workspace-stage">${esc(e.source)}</span></div><div class="task-meta">${esc(e.message||'(no message)')}</div><div class="task-meta dim">${esc(e.subject)} · ${esc(e.created_at||'')}${e.repeat_count?` · ${e.repeat_count} repeat(s) suppressed`:''}</div></div>`).join('');
+}
+
+function renderRules(items){
+  const box=$('ruleList');
+  if(!items.length){box.className='list empty';box.innerHTML='No rules.';return}
+  box.className='list';
+  box.innerHTML=items.map(r=>{
+    const match=[r.match_source&&`source=${r.match_source}`,r.match_kind&&`kind=${r.match_kind}`,r.match_subject&&`subject=${r.match_subject}`].filter(Boolean).join(' · ')||'any event';
+    const conds=(r.conditions||[]).map(c=>`${c.path} ${c.op}${c.value===undefined?'':' '+JSON.stringify(c.value)}`).join(' AND ');
+    return `<div class="event-item${r.enabled&&!r.expired?'':' disabled-rule'}"><div class="row"><strong>${esc(r.name)}</strong><span class="workspace-stage">${r.expired?'expired':(r.enabled?'enabled':'disabled')}</span></div>${r.description?`<div class="task-meta">${esc(r.description)}</div>`:''}<div class="task-meta dim">WHEN ${esc(match)}${conds?` AND ${esc(conds)}`:''}</div><div class="task-meta dim">THEN ${esc(r.action?.type||'?')}${r.action?.tool?` ${esc(r.action.tool)}`:''} · cooldown ${Math.round(Number(r.cooldown_seconds||0)/60)} min · fired ${r.fire_count||0}×</div><div class="connector-actions"><button class="tiny" onclick="toggleRule(${r.id},${r.enabled?'false':'true'})">${r.enabled?'Disable':'Enable'}</button><button class="tiny" onclick="deleteRule(${r.id})">Delete</button></div></div>`;
+  }).join('');
+}
+async function toggleRule(id,enabled){try{await api('/api/events/rules/update','POST',{rule_id:id,enabled});toast(`Rule ${enabled?'enabled':'disabled'}`);await loadEvents()}catch(e){toast(e.message,true)}}
+window.toggleRule=toggleRule;
+async function deleteRule(id){if(!confirm('Delete this reaction rule? Events it already produced are kept.'))return;try{await api('/api/events/rules/delete','POST',{rule_id:id});toast('Rule deleted');await loadEvents()}catch(e){toast(e.message,true)}}
+window.deleteRule=deleteRule;
+
+function renderReactionTasks(items){
+  const box=$('reactionTaskList');
+  if(!items.length){box.className='list empty';box.innerHTML='No queued tasks.';return}
+  box.className='list';
+  box.innerHTML=items.map(t=>`<div class="event-item"><strong>${esc(t.title)}</strong>${t.detail?`<div class="task-meta">${esc(t.detail)}</div>`:''}<div class="task-meta dim">queued ${esc(t.created_at||'')}</div><div class="connector-actions"><button class="tiny" onclick="setReactionTask(${t.id},'done')">Done</button><button class="tiny" onclick="setReactionTask(${t.id},'dismissed')">Dismiss</button></div></div>`).join('');
+}
+async function setReactionTask(id,status){try{await api('/api/events/tasks/status','POST',{task_id:id,status});await loadEvents()}catch(e){toast(e.message,true)}}
+window.setReactionTask=setReactionTask;
+
+function renderProposals(items){
+  const box=$('proposalList');
+  if(!items.length){box.className='list empty';box.innerHTML='No proposed actions.';return}
+  box.className='list';
+  box.innerHTML=items.map(p=>`<div class="event-item sev-notice"><div class="row"><strong>${esc(p.tool)}</strong><span class="workspace-stage">${esc(p.status)}</span></div>${p.reason?`<div class="task-meta">${esc(p.reason)}</div>`:''}<div class="task-meta dim">${esc(JSON.stringify(p.arguments||{}))}</div><div class="task-meta dim">Requires L${p.required_level??'?'} · gate says "${esc(p.permission_outcome)}" · has not run</div><div class="connector-actions"><button class="tiny" onclick="resolveProposal(${p.id},'approve')">Approve &amp; run</button><button class="tiny" onclick="resolveProposal(${p.id},'reject')">Reject</button></div></div>`).join('');
+}
+async function resolveProposal(id,decision){
+  if(decision==='approve'&&!confirm('Run this proposed action now? It executes through the normal permission path.'))return;
+  try{const d=await api('/api/events/proposals/resolve','POST',{proposal_id:id,decision});toast(d.result?.message||'Done');await loadEvents();await refreshStatus()}catch(e){toast(e.message,true)}
+}
+window.resolveProposal=resolveProposal;
+
+async function loadDrivers(){
+  try{
+    const d=await api('/api/drivers');const box=$('driverList');const list=d.drivers?.drivers||[];
+    if(!list.length){box.className='list empty';box.innerHTML='No drivers registered.';return}
+    box.className='list';
+    box.innerHTML=list.map(x=>{
+      const flags=[['enabled',x.enabled],['available',x.available],['configured',x.configured],['writes',x.writes_allowed]].map(([k,v])=>`<span class="chip ${v?'on':'off'}">${k}${v?' ✓':' ✗'}</span>`).join('');
+      return `<div class="event-item${x.usable?'':' disabled-rule'}"><div class="row"><strong>${esc(x.name)}</strong><span class="workspace-stage">${x.usable?'usable':'not ready'}</span></div><div class="task-meta">${esc(x.detail||'')}</div><div class="task-meta">${flags}</div>${x.targets?.length?`<div class="task-meta dim">approved: ${esc(x.targets.join(', '))}</div>`:''}${x.last_error?`<div class="task-meta dim">last error: ${esc(x.last_error)}</div>`:''}${x.available&&x.enabled?`<div class="connector-actions"><button class="tiny" onclick="discoverDriver('${esc(x.name)}')">Discover</button></div>`:''}</div>`;
+    }).join('');
+  }catch(e){toast(e.message,true)}
+}
+async function discoverDriver(name){try{toast(`Discovering with ${name}…`);const d=await api('/api/drivers/discover','POST',{driver:name});toast(d.ok?'Discovery complete — see result below':'Discovery failed');const box=$('driverList');box.insertAdjacentHTML('afterbegin',`<div class="event-item"><strong>${esc(name)} discovery</strong><pre class="task-meta" style="white-space:pre-wrap;max-height:220px;overflow:auto">${esc(String(d.result).slice(0,4000))}</pre></div>`)}catch(e){toast(e.message,true)}}
+window.discoverDriver=discoverDriver;
+
+$('refreshEventsBtn')?.addEventListener('click',loadEvents);
+$('dismissAllBtn')?.addEventListener('click',async()=>{try{const d=await api('/api/notifications/dismiss-all','POST',{});toast(`Dismissed ${d.dismissed}`);await loadEvents();await refreshStatus()}catch(e){toast(e.message,true)}});
+$('pollDriversBtn')?.addEventListener('click',async()=>{try{$('pollDriversBtn').disabled=true;const d=await api('/api/drivers/poll','POST',{});toast(`Polled ${d.result.polled} driver(s): ${d.result.published} new, ${d.result.suppressed} suppressed`);await loadEvents()}catch(e){toast(e.message,true)}finally{$('pollDriversBtn').disabled=false}});

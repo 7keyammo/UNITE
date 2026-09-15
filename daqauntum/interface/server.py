@@ -109,6 +109,13 @@ class DaQauntumRequestHandler(BaseHTTPRequestHandler):
         if path == "/api/presence":
             self._json({"ok": True, "stats": kernel.presence.stats(), "presence": kernel.presence.latest()})
             return
+        if path == "/api/events":
+            limit = int((query.get("limit") or ["25"])[0])
+            self._json({"ok": True, **kernel.events.overview(limit=limit)})
+            return
+        if path == "/api/drivers":
+            self._json({"ok": True, "drivers": kernel.drivers.stats()})
+            return
         if path == "/api/demo":
             self._json({"ok": True, "demo": kernel.demo.state(), "readiness": kernel.demo.readiness()})
             return
@@ -301,6 +308,106 @@ class DaQauntumRequestHandler(BaseHTTPRequestHandler):
                 self._json({"ok": True, "pending_approval": approval_id, "message": result.output})
             else:
                 self._json({"ok": result.ok, "result": result.output})
+            return
+
+        if path == "/api/events/publish":
+            # Manual publish is a user-authored observation. It enters the same
+            # pipeline as any sensor and gains no extra authority from doing so.
+            from events.models import Event
+
+            result = kernel.events.publish(
+                Event(
+                    source="user",
+                    kind=str(payload.get("kind", "manual")).strip() or "manual",
+                    subject=str(payload.get("subject", "user")).strip() or "user",
+                    severity=str(payload.get("severity", "info")),
+                    message=str(payload.get("message", "")),
+                    attributes=payload.get("attributes") if isinstance(payload.get("attributes"), dict) else {},
+                )
+            )
+            self._json({"ok": True, "result": result.as_dict()})
+            return
+
+        if path == "/api/events/rules/create":
+            rule = kernel.events.create_rule(
+                name=str(payload.get("name", "")),
+                description=str(payload.get("description", "")),
+                match_source=payload.get("match_source") or None,
+                match_kind=payload.get("match_kind") or None,
+                match_subject=payload.get("match_subject") or None,
+                min_severity=str(payload.get("min_severity", "debug")),
+                conditions=payload.get("conditions") or [],
+                action=payload.get("action") or {},
+                scope=payload.get("scope") or {},
+                cooldown_seconds=payload.get("cooldown_seconds"),
+                expires_in_seconds=payload.get("expires_in_seconds"),
+                enabled=bool(payload.get("enabled", True)),
+            )
+            self._json({"ok": True, "rule": rule, "rules": kernel.events.list_rules()})
+            return
+
+        if path == "/api/events/rules/update":
+            rule_id = int(payload.get("rule_id", 0))
+            changes = {key: payload[key] for key in ("enabled", "description", "cooldown_seconds", "conditions", "action", "scope") if key in payload}
+            rule = kernel.events.reactions.update_rule(rule_id, **changes)
+            if rule is None:
+                self._json({"ok": False, "error": f"No rule with id {rule_id}"}, HTTPStatus.NOT_FOUND)
+                return
+            self._json({"ok": True, "rule": rule, "rules": kernel.events.list_rules()})
+            return
+
+        if path == "/api/events/rules/delete":
+            rule_id = int(payload.get("rule_id", 0))
+            deleted = kernel.events.reactions.delete_rule(rule_id)
+            self._json({"ok": deleted, "rules": kernel.events.list_rules()})
+            return
+
+        if path == "/api/notifications/status":
+            notification_id = int(payload.get("notification_id", 0))
+            status = str(payload.get("status", "read"))
+            record = kernel.events.notifications.set_status(notification_id, status)
+            if record is None:
+                self._json({"ok": False, "error": f"No notification with id {notification_id}"}, HTTPStatus.NOT_FOUND)
+                return
+            self._json({"ok": True, "notification": record, "stats": kernel.events.notifications.stats()})
+            return
+
+        if path == "/api/notifications/dismiss-all":
+            count = kernel.events.notifications.dismiss_all()
+            self._json({"ok": True, "dismissed": count, "stats": kernel.events.notifications.stats()})
+            return
+
+        if path == "/api/events/tasks/status":
+            task_id = int(payload.get("task_id", 0))
+            task = kernel.events.reactions.set_task_status(task_id, str(payload.get("status", "done")))
+            if task is None:
+                self._json({"ok": False, "error": f"No task with id {task_id}"}, HTTPStatus.NOT_FOUND)
+                return
+            self._json({"ok": True, "task": task})
+            return
+
+        if path == "/api/events/proposals/resolve":
+            # The only place a reaction's proposed action can ever run, and only
+            # because the user explicitly approved this specific proposal.
+            proposal_id = int(payload.get("proposal_id", 0))
+            decision = str(payload.get("decision", "reject")).strip().lower()
+            if decision == "approve":
+                result = kernel.approve_proposal(proposal_id)
+            else:
+                result = kernel.reject_proposal(proposal_id)
+            self._json({"ok": bool(result.get("ok")), "result": result, "proposals": kernel.events.reactions.list_proposals(status="pending_approval")})
+            return
+
+        if path == "/api/drivers/poll":
+            self._json({"ok": True, "result": kernel.drivers.poll_once(), "drivers": kernel.drivers.stats()})
+            return
+
+        if path == "/api/drivers/discover":
+            name = str(payload.get("driver", "")).strip()
+            if not name:
+                raise ValueError("driver is required")
+            result = kernel.tools.execute("driver_discover", {"driver": name})
+            self._json({"ok": result.ok, "result": result.output})
             return
 
         if path == "/api/demo/start":

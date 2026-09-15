@@ -684,6 +684,39 @@ class DaQauntumKernel:
         )
         return {"ok": result.ok, "message": result.output}
 
+    def approve_proposal(self, proposal_id: int) -> dict[str, Any]:
+        """Run a reaction's proposed tool call after the user approves it.
+
+        A proposal is inert until this is called by an explicit user action.
+        Execution still goes through the one tool boundary with the permission
+        manager re-evaluating the call, so approving here grants no authority
+        the user did not already have. A proposal the gate refused at creation
+        time can never be approved.
+        """
+        proposal = self.events.reactions.get_proposal(proposal_id)
+        if not proposal:
+            return {"ok": False, "message": f"No proposal with id {proposal_id}."}
+        if proposal["status"] != "pending_approval":
+            return {"ok": False, "message": f"Proposal {proposal_id} is already {proposal['status']}."}
+
+        result = self.tools.execute(proposal["tool"], proposal["arguments"], approved=True)
+        self.events.reactions.resolve_proposal(proposal_id, "approved")
+        self.memory.add_event(
+            "approved_reaction_proposal",
+            {"proposal_id": int(proposal_id), "tool": proposal["tool"], "ok": result.ok, "output": result.output},
+        )
+        return {"ok": result.ok, "message": result.output, "tool": proposal["tool"]}
+
+    def reject_proposal(self, proposal_id: int) -> dict[str, Any]:
+        """Decline a proposed action. Nothing runs."""
+        proposal = self.events.reactions.get_proposal(proposal_id)
+        if not proposal:
+            return {"ok": False, "message": f"No proposal with id {proposal_id}."}
+        if proposal["status"] != "pending_approval":
+            return {"ok": False, "message": f"Proposal {proposal_id} is already {proposal['status']}."}
+        self.events.reactions.resolve_proposal(proposal_id, "rejected")
+        return {"ok": True, "message": f"Rejected proposed {proposal['tool']} action."}
+
     def _build_system_prompt(
         self,
         agent_prompt: str,
