@@ -155,6 +155,17 @@ REQUIRED = [
     "identity/__init__.py",
     "events/push.py",
     "interface/web/mobile.html",
+    "native_model/schema.py",
+    "native_model/curate.py",
+    "native_model/evaluate.py",
+    "native_model/registry.py",
+    "native_model/lab.py",
+    "scripts/curate_dataset.py",
+    "scripts/evaluate_model.py",
+    "scripts/train_native_model.py",
+    "scripts/model_registry.py",
+    "evaluations/native_model_smoke_test.py",
+    "requirements-training.txt",
 ]
 
 EXPECTED_VERSION = "0.4.2-dev"

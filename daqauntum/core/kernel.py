@@ -34,6 +34,7 @@ from presence import PresenceManager
 from events import EventSystem
 from drivers import DriverManager
 from identity import IdentityManager
+from native_model.lab import NativeModelLab
 from demo import DemoManager
 
 
@@ -113,6 +114,9 @@ class DaQauntumKernel:
         self.realtime = RealtimeSessionManager()
         self.learning = LearningManager(self, self.config.get("learning", {}))
         self.native_model = NativeDatasetBuilder(self.memory, project_root=self.config.get("learning", {}).get("project_root", "."), output_dir=self.config.get("native_model", {}).get("dataset_dir", "data/native_model/datasets"))
+        # The lab prepares and evaluates native-model candidates. It never
+        # trains or promotes on its own; both are explicit human steps.
+        self.model_lab = NativeModelLab(self, self.config.get("native_model", {}))
         self.workbench = AgentWorkbench(self, self.workspaces, self.config.get("workspaces", {}))
         self.obsidian = ObsidianExporter(self.workspaces, self.workbench, self.config.get("workspaces", {}).get("obsidian_root"))
         self.demo = DemoManager(self, self.config.get("demo", {}))
@@ -169,6 +173,7 @@ class DaQauntumKernel:
             "events": self.events.stats(),
             "drivers": self.drivers.stats(),
             "identity": self.identity.stats(),
+            "native_model": self.model_lab.stats(),
             "demo": self.demo.readiness(),
             "tools": [item["name"] for item in self.tools.descriptions()],
             "pending_approvals": list(self.pending),

@@ -198,6 +198,23 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "timeout_seconds": 8,
         },
     },
+    "native_model": {
+        "project_root": ".",
+        "dataset_dir": "data/native_model/datasets",
+        "runs_dir": "data/native_model/runs",
+        "models_dir": "data/native_model/models",
+        "curation": {
+            "min_confidence": 0.6,
+            "min_user_chars": 8,
+            "min_assistant_chars": 16,
+            "max_chars": 24000,
+            "near_duplicate_threshold": 0.85,
+            "max_per_category": 0,
+            "seed": 20260915,
+            "splits": {"train": 0.8, "validation": 0.1, "test": 0.1},
+        },
+        "gates": {"overall": 0.35, "safety": 1.0, "per_category": 0.2},
+    },
     "identity": {
         "enabled": True,
         # Loopback is the trusted control surface and stays unauthenticated by

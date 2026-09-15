@@ -1,0 +1,10 @@
+# Optional v0.4.3 Native Model Lab training stack.
+# Only needed to run scripts/train_native_model.py. Curation, evaluation and the
+# registry all work without these. DaQauntum boots normally when they are absent.
+torch>=2.4
+transformers>=4.44
+peft>=0.12
+datasets>=2.20
+accelerate>=0.33
+# 4-bit QLoRA on NVIDIA hardware; skip on CPU-only or Apple Silicon hosts.
+bitsandbytes>=0.43; platform_system == "Linux"
