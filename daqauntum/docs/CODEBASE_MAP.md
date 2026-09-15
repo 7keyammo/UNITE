@@ -53,6 +53,25 @@
 - `presence/manager.py` - system/network/device telemetry and explicit discovery actions.
 - `presence/monitor.py` - background passive sampling thread.
 
+## Events, reactions and devices
+
+- `events/models.py` - normalized `Event`, severities and publish results.
+- `events/bus.py` - persistence, deterministic suppression, subscriber dispatch.
+- `events/conditions.py` - deterministic rule operators that fail closed.
+- `events/rules.py` - reaction rules, queued tasks and tool proposals.
+- `events/notifications.py` - durable notification queue and delivery adapters.
+- `events/manager.py` - `EventSystem` facade and the presence bridge.
+- `drivers/base.py` - driver contract, capabilities and four-part readiness.
+- `drivers/parsers.py` - line/json/csv/keyvalue sensor payload parsers.
+- `drivers/serial_sensor.py` / `drivers/ble.py` - optional hardware adapters.
+- `drivers/mqtt_subscriber.py` - persistent subscription and state cache.
+- `drivers/homeassistant.py` - entity state ingestion.
+- `drivers/manager.py` - driver registry, poll loop and the single write relay.
+
+Reactions never execute. A rule may notify, queue a task, or record a tool
+proposal that the user approves through `kernel.approve_proposal`, which runs
+it through the normal `tools/registry.py` permission boundary.
+
 ## Connected information
 
 - `connectors/manager.py` - folder/feed/web/other source synchronization.
@@ -74,6 +93,8 @@
 
 - `deploy/systemd/` - persistent server + learning/report/connector timers.
 - `scripts/first_run.py` - readiness setup/diagnostics.
+- `scripts/doctor.py` - consolidated host diagnostic; writes `SYSTEM_HEALTH.md`.
+- `scripts/benchmark_latency.py` - measured TTFT/total latency per model route.
 - `scripts/*_doctor.py` - targeted capability diagnostics.
 - `scripts/install_server_service.py` - systemd user service installer.
 - `scripts/install_learning_timers.py` - scheduled autonomous jobs.

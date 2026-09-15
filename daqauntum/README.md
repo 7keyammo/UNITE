@@ -1,11 +1,36 @@
-# DaQauntum v0.4.0 — Presence + Guided Demo
+# DaQauntum v0.4.1-dev — Device Drivers + Event Reactions
 
-DaQauntum v0.4.0 is the first release aimed at being **walk-up usable**, not only developer-testable.
+DaQauntum v0.4.1-dev builds on v0.4.0, the first release aimed at being
+**walk-up usable** rather than only developer-testable.
 
 > **Developer handoff edition:** This repository includes `CLAUDE.md`, `AGENTS.md`, `TASKS.md`, and `docs/HANDOFF.md` so Claude Code and Codex can continue development without the original chat history. Start there before editing code.
  It keeps the persistent server, realtime/full-duplex voice, structured memory, knowledge graph, source intelligence, connected folders/phone/web, autonomous learning, native-model seed corpus, workspaces/agents, integrations, screen perception, and permission-gated computer control from v0.3.x.
 
-v0.4.0 adds:
+v0.4.1 adds:
+
+- An **event bus**: approved sources publish normalized observations into one
+  audited pipeline, with deduplication, debounce and per-kind cooldown so a
+  noisy sensor cannot spam you or re-trigger reactions.
+- **Deterministic reaction rules** with conditions, scopes, expiry and cooldown.
+  A rule may notify you, queue a task, or *propose* a tool call — it can never
+  run one itself, at any permission level.
+- A durable **notification queue** with an adapter interface for a future
+  mobile push client.
+- An optional **device driver SDK**: BLE GATT (via `bleak`), serial sensors
+  (via `pyserial`), a persistent MQTT subscription with a state cache, and
+  Home Assistant entity ingestion. Every driver is opt-in, scoped to an
+  explicit allowlist, and read-only unless writes are separately enabled.
+- An **Events & Reactions** GUI view showing events, rules, notifications,
+  queued tasks, proposed actions and honest per-driver readiness.
+- `scripts/doctor.py`, one diagnostic for the whole host that writes
+  `data/diagnostics/SYSTEM_HEALTH.md`.
+- `scripts/benchmark_latency.py` for measured time-to-first-token per route.
+
+The `-dev` suffix is deliberate: the code is complete and regression-tested with
+hardware-independent mocks, but v0.4.1's definition of done also requires one
+real sensor path validated on the target machine.
+
+v0.4.0 added:
 
 - **Presence Layer** for passive local awareness of network state, battery, temperatures, local sensor buses, cameras, serial/USB devices, and paired Bluetooth metadata.
 - Explicit nearby **Wi-Fi**, **Bluetooth**, and **mDNS/Bonjour** discovery controls.
@@ -216,10 +241,21 @@ PYTHONPATH=. python evaluations/perception_smoke_test.py
 PYTHONPATH=. python evaluations/presence_smoke_test.py
 PYTHONPATH=. python evaluations/demo_smoke_test.py
 PYTHONPATH=. python evaluations/gui_smoke_test.py
+PYTHONPATH=. python evaluations/events_smoke_test.py
+PYTHONPATH=. python evaluations/drivers_smoke_test.py
 ```
 
-## What v0.4.0 is — and is not
+Check the whole host in one pass:
 
-v0.4.0 is a working local-first assistant/runtime that can chat through a configured real model, speak/listen, maintain memory, learn autonomously, observe approved local context, discover nearby radios on request, ingest external information, perceive screen/camera context, and prepare permission-gated actions.
+```bash
+PYTHONPATH=. python scripts/doctor.py
+PYTHONPATH=. python scripts/doctor.py --redact   # safe to share
+```
 
-It is **not yet** a universal autonomous ambient agent that can pair with arbitrary hardware, understand every BLE GATT profile, control unknown devices, or safely roam an open network without explicit boundaries. Those capabilities belong in later adapter/driver releases.
+## What this is — and is not
+
+DaQauntum is a working local-first assistant/runtime that can chat through a configured real model, speak/listen, maintain memory, learn autonomously, observe approved local context, discover nearby radios on request, ingest external information, perceive screen/camera context, react to approved events, and prepare permission-gated actions.
+
+It is **not yet** a universal autonomous ambient agent that can pair with arbitrary hardware, understand every BLE GATT profile, control unknown devices, or safely roam an open network without explicit boundaries.
+
+The v0.4.1 drivers are implemented adapters, not proven device control. Each becomes usable only once its optional dependency is installed, the device is explicitly allowlisted, and — for BLE — a GATT profile declares what may be read. None has been validated against real hardware yet. Describe them as implemented and awaiting hardware validation.

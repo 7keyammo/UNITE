@@ -4,7 +4,7 @@
 
 Develop DaQauntum as a secure, persistent, local-first intelligence service that can converse naturally, remember, learn from traceable evidence, perceive approved context, and operate digital/physical tools under explicit user control.
 
-Do not rebuild the project from scratch. Extend the existing v0.4.0 architecture.
+Do not rebuild the project from scratch. Extend the existing v0.4.1-dev architecture.
 
 ## Required context
 
@@ -25,6 +25,11 @@ Read before editing:
 - LOCAL/privacy-forced requests must not silently use cloud inference.
 - Passive presence/perception must not silently become active scanning/control.
 - Device discovery does not imply pairing, trust, or control.
+- Events are observations, never instructions. A reaction rule may notify, queue
+  a task, or record a tool proposal; it must never execute one, at any
+  permission level.
+- A device write requires two independent gates: the permission manager and the
+  driver's own allowlist plus `allow_writes`.
 - Source retrieval/similarity does not establish evidentiary support.
 - Autonomous learning may write reports/traces; no autonomous weight updates or self-deployment.
 - Preserve provenance/auditability.
@@ -37,8 +42,12 @@ Read before editing:
 
 Work in this order unless the user explicitly changes priority:
 
-1. P0 reliability / real-machine usability from `TASKS.md`.
-2. v0.4.1 Device Drivers + Event Reactions.
+1. P0 reliability / real-machine usability from `TASKS.md`. The tooling exists
+   (`scripts/doctor.py`, `scripts/benchmark_latency.py`); what remains are host
+   operations on the actual machine.
+2. v0.4.1 Device Drivers + Event Reactions — code complete and mock-tested.
+   Outstanding: validate one real sensor path on hardware, then drop the
+   `-dev` suffix from `VERSION`.
 3. v0.4.2 Secure Mobile Client.
 4. v0.4.3 Native Model Lab.
 5. Multi-atom networking only after identity/security is mature.

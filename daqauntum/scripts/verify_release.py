@@ -139,7 +139,19 @@ REQUIRED = [
     "scripts/presence_doctor.py",
     "scripts/run_demo.py",
     "scripts/first_run.py",
+    "scripts/doctor.py",
+    "scripts/benchmark_latency.py",
+    "events/manager.py",
+    "events/bus.py",
+    "events/rules.py",
+    "events/notifications.py",
+    "drivers/manager.py",
+    "drivers/base.py",
+    "evaluations/events_smoke_test.py",
+    "evaluations/drivers_smoke_test.py",
 ]
+
+EXPECTED_VERSION = "0.4.1-dev"
 
 
 def main() -> None:
@@ -149,8 +161,8 @@ def main() -> None:
         raise SystemExit("INCOMPLETE RELEASE - missing: " + ", ".join(missing))
 
     version = (root / "VERSION").read_text(encoding="utf-8").strip()
-    if version != "0.4.0":
-        raise SystemExit(f"VERSION mismatch: expected 0.4.0, got {version}")
+    if version != EXPECTED_VERSION:
+        raise SystemExit(f"VERSION mismatch: expected {EXPECTED_VERSION}, got {version}")
 
     manifest_path = root / "RELEASE_MANIFEST.txt"
     for line in manifest_path.read_text(encoding="utf-8").splitlines():

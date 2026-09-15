@@ -36,13 +36,18 @@ This file prevents architecture diagrams from being mistaken for configured real
 | Computer control | IMPLEMENTED / PROTOTYPE | Open Interpreter/adapter | Must remain permission-gated |
 | Visual post-action verification | IMPLEMENTED / PROTOTYPE | vision route | PASS/FAIL/UNCERTAIN, not infallible |
 | Passive presence sensing | IMPLEMENTED / PROTOTYPE | host OS support | Observes approved local telemetry only |
+| Event bus + reaction rules | IMPLEMENTED | none | Deterministic matching; rules only notify, queue or propose |
+| Notification queue | IMPLEMENTED | none | Local queue; mobile push adapter is PLANNED |
+| Reaction tool proposals | IMPLEMENTED | none | Recorded only; execution always needs explicit user approval |
+| Consolidated host doctor | IMPLEMENTED | none | Writes `data/diagnostics/SYSTEM_HEALTH.md` |
+| Latency benchmark | IMPLEMENTED | a real model route | Mock provider is excluded from recommendations |
 | Wi-Fi state/scan | IMPLEMENTED | NetworkManager/nmcli where applicable | Scan is explicit; joining is state-changing |
 | Bluetooth metadata/scan/connect | IMPLEMENTED / PROTOTYPE | bluetoothctl/BlueZ | No automated pairing/PIN flows |
-| BLE GATT generic drivers | PLANNED | Bleak or platform backend | v0.4.1 target |
-| Serial sensor drivers | PLANNED | pyserial + hardware | v0.4.1 target |
+| BLE GATT generic drivers | IMPLEMENTED / OPTIONAL DEPENDENCY | `bleak` + allowlisted device + declared GATT profile | Reads declared characteristics only; no pairing flow |
+| Serial sensor drivers | IMPLEMENTED / HARDWARE REQUIRED | `pyserial` + allowlisted port | Read-only unless `allow_writes` is set; not yet validated on real hardware |
 | MQTT one-shot read/publish | IMPLEMENTED | mosquitto CLI + broker | Publish is state-changing |
-| MQTT persistent subscription cache | PLANNED | MQTT client | v0.4.1 target |
-| Home Assistant bridge | IMPLEMENTED / OPTIONAL DEPENDENCY | HA URL/token | Deeper event ingestion planned |
+| MQTT persistent subscription cache | IMPLEMENTED | mosquitto-clients + broker | Topic allowlist re-checked locally; publish stays permission-gated |
+| Home Assistant bridge | IMPLEMENTED / OPTIONAL DEPENDENCY | HA URL/token | State ingestion for listed entities; service calls stay permission-gated |
 | Tailscale Serve | IMPLEMENTED adapter | Tailscale installed/authenticated | Preferred remote transport |
 | Obsidian export | IMPLEMENTED | Obsidian optional | Export is not the authoritative memory store |
 | PostgreSQL/pgvector | OPTIONAL adapter | PostgreSQL + pgvector | SQLite remains default authority |
@@ -50,6 +55,15 @@ This file prevents architecture diagrams from being mistaken for configured real
 | Native DaQauntum fine-tuned model | PLANNED | GPU/training pipeline/base model | Dataset preparation only today |
 | Multi-atom network | PLANNED | identity/security/network protocol | No peer-memory sharing yet |
 | Production mobile client | PLANNED | mobile/PWA work | Phone bridge is not this |
+
+## v0.4.1 status note
+
+The v0.4.1 event, reaction and driver code is implemented and covered by
+`evaluations/events_smoke_test.py` and `evaluations/drivers_smoke_test.py`,
+which run entirely on mocks. No driver in this table has yet been validated
+against real hardware on the target host, so the release carries a `-dev`
+suffix. Describe these adapters as implemented and awaiting hardware
+validation, not as working device control.
 
 ## Important rule
 

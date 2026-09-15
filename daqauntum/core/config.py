@@ -10,7 +10,7 @@ import yaml
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "name": "DaQauntum",
-    "version": "0.4.0",
+    "version": "0.4.1-dev",
     "permission_level": 2,
     "models": {
         "fallback_to_mock": True,

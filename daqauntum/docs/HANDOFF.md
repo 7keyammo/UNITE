@@ -29,8 +29,8 @@ The governing principle is:
 
 ## Current release
 
-Version: `0.4.0`
-Codename: **Presence + Guided Demo**
+Version: `0.4.1-dev`
+Codename: **Device Drivers + Event Reactions**
 
 Current primary entrypoints:
 
@@ -150,17 +150,32 @@ Recommended split:
 
 This is a suggested workflow, not a capability claim. The repo instructions in `CLAUDE.md` and `AGENTS.md` are authoritative.
 
+## What changed after this handoff was written
+
+A v0.4.1-dev development pass implemented the Device Drivers + Event Reactions
+milestone: `events/` (bus, deterministic reaction rules, notifications) and
+`drivers/` (BLE, serial, MQTT subscription, Home Assistant ingestion), plus the
+Events GUI view, the `driver_*`/`events_*` tools, `scripts/doctor.py`,
+`scripts/benchmark_latency.py`, and two new regression suites.
+
+Two v0.4.1 acceptance criteria remain open and both require the physical
+machine: validating one real sensor path, and retesting a freshly extracted
+release archive. `VERSION` reads `0.4.1-dev` until then.
+
+The P0 recommendation below is unchanged and still comes first, but step 2 is
+now a single command: `PYTHONPATH=. python scripts/doctor.py`.
+
 ## First coding session recommendation
 
 Do not begin v0.4.1 immediately. First complete `TASKS.md` **P0 Stabilize the Real Machine**:
 
 1. upgrade the actual host to this handoff repo;
-2. run first-run and integration/presence doctors;
+2. run `scripts/doctor.py` (it replaces running the separate doctors);
 3. configure local STT/TTS;
-4. benchmark model routes/TTFT;
+4. benchmark model routes/TTFT with `scripts/benchmark_latency.py`;
 5. install persistent server service;
 6. verify 7 AM / 7 PM learning jobs;
 7. verify Tailscale remote access;
-8. produce one `SYSTEM_HEALTH.md` report from the real host.
+8. produce one `SYSTEM_HEALTH.md` report from the real host (`scripts/doctor.py` writes it).
 
 Once those pass, begin the v0.4.1 event/driver milestone.

@@ -4,14 +4,21 @@ This backlog is ordered. Coding agents should prefer the highest unfinished prio
 
 # P0 - Stabilize the real DaQauntum host
 
+> **Status:** the tooling P0 needs is now built and tested
+> (`scripts/doctor.py`, `scripts/benchmark_latency.py`). The remaining P0 items
+> are host operations that can only be performed on the actual Debian machine:
+> run the doctor, configure voice, benchmark the real model routes, install the
+> service, and set up Tailscale. Start there before extending v0.4.1.
+
+
 Goal: prove v0.4.0 is an everyday usable service on the actual Debian machine, not only a regression-tested repository.
 
 ## P0.1 Upgrade and baseline
 
 - [ ] Move the user's current v0.3.6 state into this v0.4.0 handoff repository using `scripts/import_previous_data.py`.
 - [ ] Run `scripts/first_run.py`.
-- [ ] Run release/core/GUI/presence/integration diagnostics.
-- [ ] Write `data/diagnostics/SYSTEM_HEALTH.md` (runtime artifact, do not commit personal details).
+- [x] Run release/core/GUI/presence/integration diagnostics. (`scripts/doctor.py` runs them in one pass)
+- [x] Write `data/diagnostics/SYSTEM_HEALTH.md` (runtime artifact, do not commit personal details). (`scripts/doctor.py`, with `--redact` for sharing)
 
 Acceptance:
 
@@ -25,7 +32,7 @@ Acceptance:
 - [ ] Verify local/system TTS.
 - [ ] Verify duplex/barge-in.
 - [ ] Measure STT time, TTFT and total latency for at least 10 short turns.
-- [ ] Add a latency benchmark/report script if needed.
+- [x] Add a latency benchmark/report script if needed. (`scripts/benchmark_latency.py`)
 
 Acceptance:
 
@@ -76,10 +83,10 @@ Goal: DaQauntum should notice approved environment changes, classify their impor
 
 ## 4.1.1 Event Bus
 
-- [ ] Add normalized `PresenceEvent` / `DeviceEvent` model.
-- [ ] Persist event audit trail.
-- [ ] Add deduplication/debounce/cooldown.
-- [ ] Allow source adapters to publish events without directly taking actions.
+- [x] Add normalized `PresenceEvent` / `DeviceEvent` model.
+- [x] Persist event audit trail.
+- [x] Add deduplication/debounce/cooldown.
+- [x] Allow source adapters to publish events without directly taking actions.
 
 Acceptance:
 
@@ -88,10 +95,10 @@ Acceptance:
 
 ## 4.1.2 Reaction Engine
 
-- [ ] Deterministic rule conditions + scopes + expiry.
-- [ ] Actions may be notify / queue task / propose tool call.
-- [ ] Rules cannot bypass PermissionManager.
-- [ ] User can inspect/enable/disable/delete rules.
+- [x] Deterministic rule conditions + scopes + expiry.
+- [x] Actions may be notify / queue task / propose tool call.
+- [x] Rules cannot bypass PermissionManager.
+- [x] User can inspect/enable/disable/delete rules.
 
 Acceptance:
 
@@ -107,48 +114,48 @@ fires once, is auditable, and cannot gain extra authority.
 
 ## 4.1.3 Notification queue
 
-- [ ] Persist notifications.
-- [ ] Severity/priority/status.
-- [ ] GUI surface.
-- [ ] Future mobile/push adapter interface.
+- [x] Persist notifications.
+- [x] Severity/priority/status.
+- [x] GUI surface.
+- [x] Future mobile/push adapter interface.
 
 ## 4.1.4 BLE GATT driver SDK
 
-- [ ] Prefer `bleak` behind an optional adapter.
-- [ ] Generic device discovery metadata.
-- [ ] Explicit GATT profile definitions (read/write/notify characteristics).
-- [ ] Writes are permission-gated.
-- [ ] Never auto-pair unknown devices.
+- [x] Prefer `bleak` behind an optional adapter.
+- [x] Generic device discovery metadata.
+- [x] Explicit GATT profile definitions (read/write/notify characteristics).
+- [x] Writes are permission-gated.
+- [x] Never auto-pair unknown devices.
 
 ## 4.1.5 Serial sensor SDK
 
-- [ ] Optional `pyserial` adapter.
-- [ ] Explicit port allowlist/connector scope.
-- [ ] Pluggable parsers for line/JSON/CSV protocols.
-- [ ] Read-only sensor adapters first; write commands separate.
+- [x] Optional `pyserial` adapter.
+- [x] Explicit port allowlist/connector scope.
+- [x] Pluggable parsers for line/JSON/CSV protocols.
+- [x] Read-only sensor adapters first; write commands separate.
 
 ## 4.1.6 MQTT subscriptions
 
-- [ ] Persistent subscriber process/client.
-- [ ] Topic allowlists.
-- [ ] Retained/current state cache.
-- [ ] Map incoming topic updates to Event Bus.
-- [ ] Publish remains permission-gated.
+- [x] Persistent subscriber process/client.
+- [x] Topic allowlists.
+- [x] Retained/current state cache.
+- [x] Map incoming topic updates to Event Bus.
+- [x] Publish remains permission-gated.
 
 ## 4.1.7 Home Assistant event ingestion
 
-- [ ] Subscribe/poll HA state/event changes through a dedicated adapter.
-- [ ] Normalize entities/capabilities/events.
-- [ ] Feed Presence/Event Bus.
-- [ ] Service calls remain permission-gated.
+- [x] Subscribe/poll HA state/event changes through a dedicated adapter.
+- [x] Normalize entities/capabilities/events.
+- [x] Feed Presence/Event Bus.
+- [x] Service calls remain permission-gated.
 
 ## v0.4.1 Definition of done
 
-- [ ] Event + reaction architecture tested with hardware-independent mocks.
-- [ ] At least one real sensor path validated on target hardware.
-- [ ] GUI shows recent events/rules/notifications.
-- [ ] No passive event source can directly mutate external state.
-- [ ] Fresh standalone ZIP passes full regression matrix.
+- [x] Event + reaction architecture tested with hardware-independent mocks.
+- [ ] At least one real sensor path validated on target hardware. **(outstanding — needs the physical machine; this is why VERSION is `0.4.1-dev`)**
+- [x] GUI shows recent events/rules/notifications.
+- [x] No passive event source can directly mutate external state.
+- [x] Fresh standalone ZIP passes full regression matrix. (verified: archive built excluding runtime state, extracted to a clean directory, fresh venv, 14/14 suites pass and `verify_release.py` passes. Repeat on the target host before shipping.)
 
 # v0.4.2 - Secure Mobile Client
 

@@ -1,6 +1,6 @@
 # DaQauntum - Claude Code Engineering Contract
 
-You are working on **DaQauntum v0.4.0**, a local-first persistent AI operating system / agent runtime. This repository is a working prototype with real subsystems for multimodel reasoning, memory, knowledge/provenance, voice, perception, permission-gated computer/device actions, autonomous learning, connected sources, workspaces, integrations, presence sensing, and a local GUI.
+You are working on **DaQauntum v0.4.1-dev**, a local-first persistent AI operating system / agent runtime. This repository is a working prototype with real subsystems for multimodel reasoning, memory, knowledge/provenance, voice, perception, permission-gated computer/device actions, autonomous learning, connected sources, workspaces, integrations, presence sensing, and a local GUI.
 
 Your job is to **improve the existing system**, not rewrite it from scratch.
 
@@ -23,7 +23,7 @@ If a task touches a subsystem, read its implementation and matching smoke test b
 1. **Model intelligence is not authority.** A stronger model never gets more tool permission.
 2. **All state-changing actions go through the permission system.** Do not create a backdoor execution path.
 3. **Local means local.** If runtime/privacy policy requires local inference, do not silently fall back to hosted providers.
-4. **Sensing is not acting.** Presence/perception may observe approved signals; connection/control is separately permission-gated.
+4. **Sensing is not acting.** Presence/perception may observe approved signals; connection/control is separately permission-gated. An event never triggers an action on its own: reaction rules may only notify, queue a task, or record a proposal the user approves.
 5. **Discovery is not trust.** Detecting a network/device/source does not authorize connection or control.
 6. **Similarity is not evidence.** Knowledge/source provenance must remain explicit.
 7. **Learning is not self-retraining.** Autonomous learning may create reports/training traces; it must not change model weights without an explicit evaluated training pipeline and human promotion decision.
@@ -46,7 +46,14 @@ The immediate goal is not more speculative features. It is to make DaQauntum a d
 - stable Eyes + Hands execution with verification;
 - strong observability and failure reporting.
 
-The next planned milestone is **v0.4.1 Device Drivers + Event Reactions**. Acceptance criteria are in `TASKS.md`.
+The v0.4.1 Device Drivers + Event Reactions code is implemented and covered by
+mock-based regression tests. Two acceptance criteria remain open and both need
+the user's actual machine: validating one real sensor path, and retesting a
+freshly extracted release archive. That is why `VERSION` reads `0.4.1-dev`.
+
+Remaining P0 host operations (run the doctor, configure voice, benchmark the
+real model routes, install the service, set up Tailscale) take priority over
+new features. Acceptance criteria are in `TASKS.md`.
 
 ## Development workflow
 
@@ -75,7 +82,7 @@ PYTHONPATH=. python scripts/verify_release.py
 PYTHONPATH=. python evaluations/smoke_test.py
 ```
 
-Full v0.4.0 regression matrix:
+Full regression matrix:
 
 ```bash
 PYTHONPATH=. python evaluations/voice_smoke_test.py
@@ -89,6 +96,8 @@ PYTHONPATH=. python evaluations/perception_smoke_test.py
 PYTHONPATH=. python evaluations/presence_smoke_test.py
 PYTHONPATH=. python evaluations/demo_smoke_test.py
 PYTHONPATH=. python evaluations/gui_smoke_test.py
+PYTHONPATH=. python evaluations/events_smoke_test.py
+PYTHONPATH=. python evaluations/drivers_smoke_test.py
 ```
 
 ## Definition of done for code changes
@@ -133,6 +142,8 @@ For release work, follow `docs/RELEASE_CHECKLIST.md` and test the **freshly extr
 - `connectors/` - external information/device ingestion
 - `integrations/` - optional third-party modules
 - `learning/` and `native_model/` - autonomous learning + future-model dataset preparation
+- `events/` - event bus, deterministic reaction rules, notifications
+- `drivers/` - optional BLE/serial/MQTT/Home Assistant device adapters
 - `evaluations/` - regression tests
 
 ## Before proposing a rewrite

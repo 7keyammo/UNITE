@@ -30,6 +30,24 @@ passive observe -> explicit discovery -> connect/pair/join -> operate
 
 Each step may require greater authority. Passive Presence must not silently start radio scans.
 
+## 5a. Events are observations, not instructions
+
+An event records that something was seen. A deterministic reaction rule may
+respond by notifying the user, queueing a task, or recording a tool *proposal*.
+It must never execute a tool, at any permission level - including L4, where the
+permission gate would allow the call outright. Passive observation becoming
+autonomous action is exactly the failure this separation prevents.
+
+A proposal the permission gate refuses is stored as denied and can never be
+approved afterwards.
+
+## 5b. A device write needs two independent gates
+
+The permission manager decides whether the user authorized the tool call. The
+driver decides whether that device was ever opened for writing, via its
+allowlist and an explicit `allow_writes`. Both must agree. User approval alone
+must not reach a device that was never opened for writing.
+
 ## 6. Device detection does not equal device capability
 
 Unknown hardware can be recorded as detected. It must not be labeled controllable until a verified adapter/capability mapping exists.

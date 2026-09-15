@@ -223,25 +223,31 @@ class MQTTSubscriberDriver(DeviceDriver):
 
     # Reads -------------------------------------------------------------------
     def poll(self) -> list[Event]:
-        """Drain messages received since the last poll."""
+        """Drain messages received since the last poll.
+
+        Messages already received are always drained, even when the
+        subscription cannot be restarted: a broker that went away must not
+        cost us the readings that arrived before it did.
+        """
         if not self.enabled:
             return []
+        failure: Event | None = None
         if not self.running:
             try:
                 self.start()
             except Exception as exc:
                 self._note_failure(exc)
-                return [
-                    self.event(
-                        "driver_error",
-                        "subscription",
-                        severity="warning",
-                        message=f"MQTT subscription unavailable: {exc}",
-                        attributes={"error": str(exc)},
-                    )
-                ]
+                failure = self.event(
+                    "driver_error",
+                    "subscription",
+                    severity="warning",
+                    message=f"MQTT subscription unavailable: {exc}",
+                    attributes={"error": str(exc)},
+                )
         with self._lock:
             pending, self._pending = self._pending, []
+        if failure is not None:
+            pending.append(failure)
         return pending
 
     def state(self, topic: str | None = None) -> dict[str, Any]:
