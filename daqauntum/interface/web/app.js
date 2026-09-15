@@ -709,3 +709,66 @@ function renderTurnLatency(latency){
   el.textContent=[part('hear',s.transcribe),part('think',s.think),part('speak',s.speak),part('total',s.total)].join(' · ');
   el.title='hear = speech end to transcript · think = transcript to first token · speak = first token to first audible reply';
 }
+
+// Daily / Lab mode ------------------------------------------------------------
+// Daily mode hides developer surfaces; it never removes them. Talking to
+// DaQauntum should not require understanding its architecture, but everything
+// stays one click away rather than being taken off the machine.
+const MODE_KEY='dq_interface_mode';
+const DAILY_VIEWS=new Set(['chat','call','demo','events']);
+
+function currentMode(){
+  try{ return localStorage.getItem(MODE_KEY)==='lab'?'lab':'daily' }catch(e){ return 'daily' }
+}
+
+function applyMode(mode,{navigate=false}={}){
+  const lab=mode==='lab';
+  document.body.classList.toggle('mode-lab',lab);
+  document.body.classList.toggle('mode-daily',!lab);
+  $('modeDaily')?.classList.toggle('active',!lab);
+  $('modeLab')?.classList.toggle('active',lab);
+  try{ localStorage.setItem(MODE_KEY,mode) }catch(e){ /* private mode */ }
+  // Leaving Lab while standing in a Lab-only view would strand the user on a
+  // hidden page, so send them home.
+  if(navigate&&!lab){
+    const active=document.querySelector('.view.active')?.id?.replace('view-','');
+    if(active&&!DAILY_VIEWS.has(active))setView('chat');
+  }
+  if(!lab)loadReadiness();
+}
+
+$('modeDaily')?.addEventListener('click',()=>applyMode('daily',{navigate:true}));
+$('modeLab')?.addEventListener('click',()=>applyMode('lab',{navigate:true}));
+
+// Readiness strip: what actually works on this machine, in plain words.
+async function loadReadiness(){
+  const strip=$('readinessStrip');
+  if(!strip)return;
+  try{
+    const d=await api('/api/universe/brain');
+    const nodes=(d.brain?.shells||[]).flatMap(s=>s.nodes||[]);
+    const pick=name=>nodes.find(n=>n.name===name);
+    const chips=[];
+    const add=(label,node,hint)=>{
+      if(!node)return;
+      const state=!node.enabled?'off':(node.degraded?'degraded':'on');
+      const title=node.degraded?`${node.detail} — ${hint}`:node.detail;
+      chips.push(`<span class="ready-chip ${state}" title="${esc(title||'')}"><i class="dot ${state}"></i>${esc(label)}</span>`);
+    };
+    add('Thinking',pick('planner'),'Configure a real model provider');
+    add('Voice',pick('voice'),'Run scripts/setup_local_voice.py');
+    add('Memory',pick('memory'),'');
+    add('Seeing',pick('perception'),'Share a screen or camera frame first');
+    add('Sensing',pick('presence'),'');
+    add('Devices',pick('drivers'),'Enable a driver in config.yaml');
+    const pending=S.status?.events?.notifications?.pending||0;
+    const approvals=(S.status?.pending_approvals||[]).length;
+    if(pending)chips.push(`<span class="ready-chip notice" onclick="setView('events')"><i class="dot degraded"></i>${pending} notification(s)</span>`);
+    if(approvals)chips.push(`<span class="ready-chip notice"><i class="dot degraded"></i>${approvals} awaiting approval</span>`);
+    strip.innerHTML=chips.join('');
+  }catch(e){ strip.innerHTML='' }
+}
+
+applyMode(currentMode());
+setTimeout(loadReadiness,600);
+setInterval(()=>{ if(document.body.classList.contains('mode-daily'))loadReadiness() },30000);

@@ -85,7 +85,38 @@ def wait_until_ready(base: str, process: subprocess.Popen, timeout: float = 12.0
     raise RuntimeError("GUI server did not become ready")
 
 
+def test_daily_mode_markup() -> None:
+    """Daily mode must hide developer surfaces without removing them.
+
+    The whole point is that a user can talk to DaQauntum without understanding
+    its architecture, while everything stays one click away.
+    """
+    root = Path(__file__).resolve().parents[1] / "interface" / "web"
+    html = (root / "index.html").read_text(encoding="utf-8")
+    css = (root / "styles.css").read_text(encoding="utf-8")
+    js = (root / "app.js").read_text(encoding="utf-8")
+
+    # Every developer view is still present in the markup, just marked.
+    for view in ("universe", "memory", "learning", "connect", "workspaces",
+                 "integrations", "perception", "presence", "devices", "system"):
+        assert f'data-view="{view}"' in html, f"{view} was removed from the rail"
+        assert f'class="nav lab-only" data-view="{view}"' in html, f"{view} is not marked lab-only"
+
+    # The daily surfaces stay visible in both modes.
+    for view in ("chat", "call", "demo", "events"):
+        assert f'data-view="{view}"' in html, view
+        assert f'class="nav lab-only" data-view="{view}"' not in html, f"{view} should not be lab-only"
+
+    assert 'id="modeDaily"' in html and 'id="modeLab"' in html, "no mode switch"
+    assert "body.mode-daily .lab-only{display:none!important}" in css, "daily mode does not hide lab surfaces"
+    assert "id=\"readinessStrip\"" in html, "no readiness strip"
+    assert "loadReadiness" in js and "applyMode" in js, "mode logic missing"
+    # Leaving Lab from a Lab-only view must not strand the user on a hidden page.
+    assert "DAILY_VIEWS" in js and "setView('chat')" in js, "no fallback when leaving Lab mode"
+
+
 def main() -> None:
+    test_daily_mode_markup()
     root = Path(__file__).resolve().parents[1]
     with tempfile.TemporaryDirectory(prefix="daqauntum-gui-smoke-") as tmp:
         tmp_root = Path(tmp)

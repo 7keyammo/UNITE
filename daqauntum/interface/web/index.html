@@ -14,18 +14,18 @@
       <div class="brand-mark"><span>DQ</span></div>
       <button class="nav active" data-view="chat" title="Chat">⌁</button>
       <button class="nav" data-view="call" title="Call">◉</button>
-      <button class="nav" data-view="universe" title="Universe">✦</button>
-      <button class="nav" data-view="memory" title="Memory">◇</button>
-      <button class="nav" data-view="learning" title="Learning">↻</button>
-      <button class="nav" data-view="connect" title="Connected Knowledge">⌘</button>
-      <button class="nav" data-view="workspaces" title="Workspaces / Agent Studio">◈</button>
-      <button class="nav" data-view="integrations" title="Integration Hub">⧉</button>
-      <button class="nav" data-view="perception" title="Eyes + Hands">◌</button>
-      <button class="nav" data-view="presence" title="Presence / Sensors">◎</button>
+      <button class="nav lab-only" data-view="universe" title="Universe">✦</button>
+      <button class="nav lab-only" data-view="memory" title="Memory">◇</button>
+      <button class="nav lab-only" data-view="learning" title="Learning">↻</button>
+      <button class="nav lab-only" data-view="connect" title="Connected Knowledge">⌘</button>
+      <button class="nav lab-only" data-view="workspaces" title="Workspaces / Agent Studio">◈</button>
+      <button class="nav lab-only" data-view="integrations" title="Integration Hub">⧉</button>
+      <button class="nav lab-only" data-view="perception" title="Eyes + Hands">◌</button>
+      <button class="nav lab-only" data-view="presence" title="Presence / Sensors">◎</button>
       <button class="nav" data-view="events" title="Events / Reactions">⚡<span class="nav-badge" id="eventsBadge" hidden>0</span></button>
-      <button class="nav" data-view="devices" title="Devices / Remote Access">⛨</button>
+      <button class="nav lab-only" data-view="devices" title="Devices / Remote Access">⛨</button>
       <button class="nav" data-view="demo" title="Guided Demo">▷</button>
-      <button class="nav" data-view="system" title="System">⚙</button>
+      <button class="nav lab-only" data-view="system" title="System">⚙</button>
       <div class="rail-spacer"></div>
       <div class="online-dot" id="onlineDot" title="DaQauntum status"></div>
     </aside>
@@ -37,19 +37,23 @@
           <h1>DaQauntum <span id="versionLabel">v0.4.0</span></h1>
         </div>
         <div class="runtime-controls">
-          <label>COMPUTE
+          <label class="lab-only">COMPUTE
             <select id="operationMode">
               <option value="auto">AUTO</option><option value="local">LOCAL</option><option value="hybrid">HYBRID</option><option value="cloud">CLOUD</option>
             </select>
           </label>
-          <label>COGNITION
+          <label class="lab-only">COGNITION
             <select id="cognitionMode">
               <option value="auto">AUTO</option><option value="realtime">REALTIME</option><option value="balanced">BALANCED</option><option value="deep">DEEP</option>
             </select>
           </label>
-          <label class="project-wrap">PROJECT<input id="projectInput" placeholder="No active project" /></label>
-          <button class="ghost" id="setProjectBtn">Set</button>
-          <div class="pill" id="modePill">AUTO · AUTO</div>
+          <div class="mode-switch" role="group" aria-label="Interface mode">
+            <button id="modeDaily" class="mode-btn active" type="button">Daily</button>
+            <button id="modeLab" class="mode-btn" type="button">Lab</button>
+          </div>
+          <label class="project-wrap lab-only">PROJECT<input id="projectInput" placeholder="No active project" /></label>
+          <button class="ghost lab-only" id="setProjectBtn">Set</button>
+          <div class="pill lab-only" id="modePill">AUTO · AUTO</div>
         </div>
       </header>
 
@@ -57,6 +61,7 @@
         <div class="workspace-grid">
           <section class="card chat-card glass">
             <div class="card-head"><span>CONVERSATION</span><span class="dim" id="agentLabel">agent: —</span></div>
+            <div id="readinessStrip" class="readiness-strip daily-only"></div>
             <div class="quick-actions">
               <button id="quickCallBtn" class="primary tiny">🎙 Talk</button>
               <button id="quickDemoBtn" class="ghost tiny">▷ Guided demo</button>

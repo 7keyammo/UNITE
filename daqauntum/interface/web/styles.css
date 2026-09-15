@@ -81,3 +81,17 @@ body[data-dq-state="listening"] .atom-core .nucleus{box-shadow:0 0 55px rgba(73,
 .dot.off{background:rgba(150,160,184,.45)}
 #brainInspector code{background:rgba(255,255,255,.07);padding:1px 5px;border-radius:5px;font-size:.78rem}
 #view-universe .list{max-height:260px;overflow:auto}
+
+/* Daily / Lab mode */
+.mode-switch{display:inline-flex;border:1px solid rgba(255,255,255,.12);border-radius:9px;overflow:hidden}
+.mode-btn{background:none;border:0;color:#9aa3b8;padding:6px 13px;font:inherit;font-size:.74rem;letter-spacing:.08em;cursor:pointer}
+.mode-btn.active{background:rgba(103,248,255,.16);color:#67f8ff;font-weight:600}
+body.mode-daily .lab-only{display:none!important}
+body.mode-lab .daily-only{display:none!important}
+.readiness-strip{display:flex;gap:7px;flex-wrap:wrap;padding:10px 14px 0}
+.ready-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:11px;font-size:.7rem;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#c4cddf}
+.ready-chip.on{color:#7cffbe}
+.ready-chip.degraded{color:#ffab4d}
+.ready-chip.off{color:#8b93a7}
+.ready-chip.notice{cursor:pointer;background:rgba(255,171,77,.13);border-color:rgba(255,171,77,.3);color:#ffab4d}
+.ready-chip i.dot{width:7px;height:7px;border-radius:50%;display:inline-block}
