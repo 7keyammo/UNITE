@@ -166,6 +166,9 @@ REQUIRED = [
     "scripts/model_registry.py",
     "evaluations/native_model_smoke_test.py",
     "requirements-training.txt",
+    "realtime/timeline.py",
+    "evaluations/latency_smoke_test.py",
+    "docs/REAL_HOST_PLAN.md",
 ]
 
 EXPECTED_VERSION = "0.4.2-dev"

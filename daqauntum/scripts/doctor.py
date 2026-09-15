@@ -230,6 +230,34 @@ class Doctor:
                 "It will degrade rather than silently use a hosted service.",
             )
 
+        # Measured, not guessed: these appear only after real spoken turns.
+        latency = self.kernel.latency.stats()
+        if not latency.get("turns"):
+            self.add(
+                "Voice", "Measured turn latency", INFO,
+                "no spoken turns recorded yet",
+                "Hold a voice conversation, then re-run. The hear/think/speak breakdown "
+                "is measured from live turns, never simulated.",
+            )
+        else:
+            stages = latency.get("stages") or {}
+            perceived = latency.get("perceived") or {}
+            slowest = latency.get("slowest_stage")
+            self.add(
+                "Voice", "Measured turn latency",
+                PASS if (perceived.get("median_ms") or 99999) < 1500 else WARN,
+                f"perceived median {perceived.get('median_ms', '—')} ms over {latency['turns']} turn(s); "
+                f"slowest stage: {slowest}",
+                {
+                    "transcribe": "Local STT is the bottleneck. Try a smaller whisper model or int8 quantization.",
+                    "think": "The model is the bottleneck. Benchmark providers and point REALTIME at the fastest useful one.",
+                    "speak": "Speech synthesis is the bottleneck. Try Piper locally, or shorten the first spoken sentence.",
+                }.get(slowest, ""),
+            )
+            for name, data in stages.items():
+                self.add("Voice", f"Stage: {name}", INFO,
+                         f"median {data['median_ms']} ms · p95 {data['p95_ms']} ms")
+
     def check_memory(self) -> None:
         if not self.kernel:
             return

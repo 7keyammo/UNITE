@@ -10,6 +10,8 @@ import wave
 from dataclasses import dataclass, field
 from typing import Any, Callable, Iterable
 
+from realtime.timeline import LatencyRecorder, TurnTimeline
+
 try:
     from websockets.asyncio.server import serve
 except Exception:  # pragma: no cover - optional dependency at import time
@@ -98,6 +100,10 @@ class FullDuplexHub:
         # How long a remote client has to present its token before the
         # connection is closed. Short, because it is one message.
         self.auth_timeout_seconds = max(2.0, min(float(cfg.get("auth_timeout_seconds", 10)), 60.0))
+        # Per-turn timings, so "it feels slow" can be attributed to a stage.
+        self.latency = LatencyRecorder(kernel.memory)
+        self._timelines: dict[str, TurnTimeline] = {}
+        self._pending_timeline: TurnTimeline | None = None
         self.registry = DuplexSessionRegistry(int(cfg.get("keep_recent_sessions", 32)))
 
     @staticmethod
@@ -294,6 +300,15 @@ class FullDuplexHub:
             session.last_partial_text = ""
             await self._send(websocket, {"type": "audio.ready", "session_id": session.id})
             return
+        if kind == "turn.audio":
+            # The client tells us when the user first *hears* the reply. We
+            # cannot observe browser speech synthesis from here, and guessing
+            # would produce a number that looks precise and means nothing.
+            turn_id = str(event.get("turn_id", "")).strip()
+            timeline = self._timelines.get(turn_id)
+            if timeline is not None:
+                timeline.mark("first_audio")
+            return
         if kind == "audio.clear":
             session.audio.clear()
             session.last_partial_text = ""
@@ -307,15 +322,23 @@ class FullDuplexHub:
             session.audio.clear()
             session.last_partial_text = ""
             wav = self.pcm16_to_wav(pcm, session.sample_rate, session.channels)
-            stt_started = time.perf_counter()
+            # Speech ended when the client committed the buffer; everything after
+            # this point is DaQauntum's latency, not the user's speaking time.
+            timeline = TurnTimeline(turn_id="", session_id=session.id,
+                                    interaction_mode=session.interaction_mode)
+            timeline.mark("speech_end")
             try:
                 result = await asyncio.to_thread(self.kernel.voice.transcribe_wav_bytes, wav)
             except Exception as exc:
                 await self._send(websocket, {"type": "error", "error": f"Local STT failed: {type(exc).__name__}: {exc}"})
                 return
+            timeline.mark("stt_done")
             text = str(result.get("text", "")).strip()
+            timeline.meta["stt_backend"] = result.get("backend")
             session.committed_utterances += 1
-            session.last_stt_ms = round((time.perf_counter() - stt_started) * 1000.0, 1)
+            session.last_stt_ms = timeline.stage_ms("speech_end", "stt_done") or 0.0
+            # Held for the turn this transcript is about to start.
+            self._pending_timeline = timeline if text else None
             session.last_audio_ms = round(len(pcm) / max(1, session.sample_rate * session.channels * 2) * 1000.0, 1)
             await self._send(websocket, {
                 "type": "transcript.final",
@@ -363,6 +386,15 @@ class FullDuplexHub:
         turn = self.kernel.realtime.begin(session.interaction_mode)
         session.active_turn_id = turn.id
         session.turns += 1
+        timeline = self._pending_timeline or TurnTimeline(
+            turn_id=turn.id, session_id=session.id, interaction_mode=session.interaction_mode
+        )
+        timeline.turn_id = turn.id
+        self._pending_timeline = None
+        self._timelines[turn.id] = timeline
+        # Keep only the most recent turns; a long call must not grow unbounded.
+        for stale in list(self._timelines)[:-32]:
+            self._timelines.pop(stale, None)
         await self._send(websocket, {"type": "user.final", "text": text, "turn_id": turn.id, "session_id": session.id})
         if session.call_id:
             factory: Callable[[], Iterable[dict[str, Any]]] = lambda: self.kernel.calls.add_turn_stream(session.call_id, text, turn_id=turn.id)
@@ -372,6 +404,18 @@ class FullDuplexHub:
             async for event in self._async_events(factory):
                 outgoing = dict(event)
                 outgoing["duplex_session_id"] = session.id
+                kind = outgoing.get("type")
+                if kind == "delta":
+                    timeline.mark("first_token")
+                elif kind == "meta":
+                    timeline.meta["provider"] = outgoing.get("provider")
+                    timeline.meta["model"] = outgoing.get("model")
+                elif kind in {"done", "interrupted"}:
+                    # An interrupted turn is still a real latency sample: the
+                    # user heard something, which is what perceived latency is.
+                    timeline.mark("complete")
+                    self.latency.record(timeline)
+                    outgoing["latency"] = timeline.as_dict()
                 await self._send(websocket, outgoing)
         finally:
             if session.active_turn_id == turn.id:

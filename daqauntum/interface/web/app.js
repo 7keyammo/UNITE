@@ -54,13 +54,14 @@ async function handleDuplexEvent(e){
   if(ev.type==='transcript.partial'){const t=String(ev.text||'').trim();if(t){$('livePartial').textContent=t;$('callHeading').textContent=`Listening: ${t}`};return}
   if(ev.type==='transcript.final'){const t=String(ev.text||'').trim();$('livePartial').textContent=ev.stt_ms!=null?`STT ${Number(ev.stt_ms).toFixed(0)} ms · ${Number(ev.audio_ms||0).toFixed(0)} ms audio`:'';if(t)$('callHeading').textContent='DaQauntum is thinking…';return}
   if(ev.type==='user.final'){
-    const t=String(ev.text||'').trim();if(t&&t!==S.duplexLastUser){appendTranscript('user',t);S.duplexLastUser=t}S.activeTurn=ev.turn_id||S.activeTurn;S.streamStartedAt=performance.now();S.streamDone=false;S.speechBuffer='';S.speechQueue=[];setDQState('thinking');beginDuplexLive();return
+    const t=String(ev.text||'').trim();if(t&&t!==S.duplexLastUser){appendTranscript('user',t);S.duplexLastUser=t}S.activeTurn=ev.turn_id||S.activeTurn;S.duplexLastTurnId=S.activeTurn;S.firstAudioReported=null;S.streamStartedAt=performance.now();S.streamDone=false;S.speechBuffer='';S.speechQueue=[];setDQState('thinking');beginDuplexLive();return
   }
-  if(ev.type==='start'){S.activeTurn=ev.turn_id||S.activeTurn;$('talkBtn').disabled=false;$('talkBtn').textContent='↯ Interrupt & Talk';if(!S.duplexLive)beginDuplexLive();return}
+  if(ev.type==='start'){S.activeTurn=ev.turn_id||S.activeTurn;S.duplexLastTurnId=S.activeTurn;S.firstAudioReported=null;$('talkBtn').disabled=false;$('talkBtn').textContent='↯ Interrupt & Talk';if(!S.duplexLive)beginDuplexLive();return}
   if(ev.type==='meta'){if(!S.duplexLive)beginDuplexLive();const first=Math.max(0,performance.now()-S.streamStartedAt);S.duplexLive.meta.textContent=`${ev.provider||'—'} / ${ev.model||'—'} · first token ${first.toFixed(0)} ms`;return}
   if(ev.type==='delta'){if(!S.duplexLive)beginDuplexLive();const delta=ev.text||'';S.duplexLive.full+=delta;S.duplexLive.text.textContent=S.duplexLive.full;$('callTranscript').scrollTop=$('callTranscript').scrollHeight;queueSpeechDelta(delta,false);return}
   if(ev.type==='done'||ev.type==='interrupted'){
     S.streamDone=true;S.activeTurn=null;queueSpeechDelta('',true);if(ev.call)S.call=ev.call;const rt=ev.realtime||ev.result?.realtime||{};
+    if(ev.latency)renderTurnLatency(ev.latency);
     if(S.duplexLive)S.duplexLive.meta.textContent=`${ev.type==='interrupted'?'interrupted · ':''}TTFT ${Number(rt.time_to_first_token_ms||0).toFixed(0)} ms · total ${Number(rt.duration_ms||0).toFixed(0)} ms`;
     S.duplexLive=null;if(S.call)renderCall();await refreshStatus();if($('autoSpeak').checked)pumpSpeechQueue();return
   }
@@ -201,7 +202,7 @@ async function interruptActiveTurn(beginListening=false){
 }
 async function stopSpeaking(){S.speechQueue=[];S.speechBuffer='';S.ttsSpeaking=false;if('speechSynthesis'in window)window.speechSynthesis.cancel();try{await api('/api/voice/stop','POST',{})}catch(e){}}
 function queueSpeechDelta(delta,force=false){if(!$('autoSpeak').checked)return;S.speechBuffer+=(delta||'');let text=S.speechBuffer;const pieces=text.split(/(?<=[.!?])\s+/);if(!force&&pieces.length<2&&text.length<170)return;let ready=[];if(force){ready=pieces.filter(Boolean);S.speechBuffer=''}else{ready=pieces.slice(0,-1).filter(Boolean);S.speechBuffer=pieces.at(-1)||'';if(!ready.length&&text.length>=170){const cut=Math.max(text.lastIndexOf(',',170),text.lastIndexOf(' ',170));if(cut>60){ready=[text.slice(0,cut+1)];S.speechBuffer=text.slice(cut+1)}}}S.speechQueue.push(...ready.map(x=>x.trim()).filter(Boolean));pumpSpeechQueue()}
-async function pumpSpeechQueue(){if(S.ttsSpeaking||!S.speechQueue.length)return;S.ttsSpeaking=true;setDQState('speaking');while(S.speechQueue.length){const sentence=S.speechQueue.shift();if(!sentence)continue;try{await speakSentence(sentence)}catch(e){if(e.name!=='AbortError')toast(`TTS: ${e.message}`,true);break}}S.ttsSpeaking=false;setDQState('idle');if(S.streamDone&&!S.speechQueue.length&&S.call?.status==='active'&&$('handsFree').checked)setTimeout(()=>startListening('call'),120)}
+async function pumpSpeechQueue(){if(S.ttsSpeaking||!S.speechQueue.length)return;S.ttsSpeaking=true;setDQState('speaking');reportFirstAudio();while(S.speechQueue.length){const sentence=S.speechQueue.shift();if(!sentence)continue;try{await speakSentence(sentence)}catch(e){if(e.name!=='AbortError')toast(`TTS: ${e.message}`,true);break}}S.ttsSpeaking=false;setDQState('idle');if(S.streamDone&&!S.speechQueue.length&&S.call?.status==='active'&&$('handsFree').checked)setTimeout(()=>startListening('call'),120)}
 async function speakSentence(text){const clean=String(text).replace(/\[[^\]]+\]/g,'').trim().slice(0,900);if(!clean)return;if(localTtsReady()){try{await api('/api/voice/speak','POST',{text:clean});return}catch(e){if(strictLocalMode())throw e}}
   if(strictLocalMode())return;if(!('speechSynthesis'in window))return;await new Promise(resolve=>{const u=new SpeechSynthesisUtterance(clean);u.rate=1.06;u.pitch=.96;u.onend=resolve;u.onerror=resolve;window.speechSynthesis.speak(u)})}
 
@@ -687,4 +688,24 @@ function renderDeviceOrbit(network){
   }
   box.className='list';
   box.innerHTML=devices.map(d=>`<div class="event-item"><div class="row"><strong>${esc(d.name)}</strong><span class="workspace-stage">${esc(d.platform||'device')}</span></div><div class="task-meta">${(d.scopes||[]).map(s=>`<span class="chip on">${esc(s)}</span>`).join('')}</div>${d.last_seen_at?`<div class="task-meta dim">last seen ${esc(new Date(d.last_seen_at*1000).toLocaleString())}</div>`:''}</div>`).join('');
+}
+
+// Perceived-latency reporting -------------------------------------------------
+// The server measures speech-end -> transcript -> first token. It cannot see
+// when the browser actually starts speaking, so the client reports that mark.
+// Without it, "first token to first audible speech" would be a guess.
+function reportFirstAudio(){
+  const turnId=S.activeTurn||S.duplexLastTurnId;
+  if(!turnId||S.firstAudioReported===turnId)return;
+  S.firstAudioReported=turnId;
+  try{ duplexSend({type:'turn.audio',turn_id:turnId}) }catch(e){ /* HTTP streaming path has no socket */ }
+}
+
+function renderTurnLatency(latency){
+  const s=latency.stages_ms||{};
+  const el=$('callLatency');
+  if(!el)return;
+  const part=(label,value)=>value==null?`${label} —`:`${label} ${Math.round(value)}ms`;
+  el.textContent=[part('hear',s.transcribe),part('think',s.think),part('speak',s.speak),part('total',s.total)].join(' · ');
+  el.title='hear = speech end to transcript · think = transcript to first token · speak = first token to first audible reply';
 }

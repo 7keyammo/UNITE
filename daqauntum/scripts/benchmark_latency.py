@@ -183,6 +183,39 @@ def render_report(payload: dict[str, Any]) -> str:
     if voice.get("stt_error"):
         lines.append(f"- STT not measured: {voice['stt_error']}")
 
+    lines += ["", "## Measured spoken turns", ""]
+    measured = payload.get("measured") or {}
+    if not measured.get("turns"):
+        lines += [
+            "No spoken turns recorded yet. This section fills in once you hold a real voice",
+            "conversation: the four stages are measured from the live duplex session, not",
+            "simulated here.",
+            "",
+            "| Stage | Meaning |",
+            "|---|---|",
+            "| hear | speech end to final transcript |",
+            "| think | final transcript to first model token |",
+            "| speak | first model token to first audible reply |",
+            "| total | the whole perceived turn |",
+        ]
+    else:
+        lines += [
+            f"- Turns recorded: {measured['turns']}",
+            f"- Slowest stage: **{measured.get('slowest_stage') or 'unknown'}**",
+            "",
+            "| Stage | Median | p95 | Min | Max |",
+            "|---|---|---|---|---|",
+        ]
+        for name, data in (measured.get("stages") or {}).items():
+            lines.append(f"| {name} | {data['median_ms']} | {data['p95_ms']} | {data['min_ms']} | {data['max_ms']} |")
+        perceived = measured.get("perceived")
+        if perceived:
+            lines += [
+                "",
+                f"- **Perceived latency** (speech end to first audible reply): "
+                f"median {perceived['median_ms']} ms, p95 {perceived['p95_ms']} ms",
+            ]
+
     lines += ["", "## Reading these numbers", ""]
     # The mock provider is an architecture fallback, not inference, so it must
     # never be recommended as a route however fast it looks.
@@ -260,12 +293,24 @@ def main() -> None:
         "routes_measured": providers,
         "results": results,
         "voice": measure_voice(kernel, args.audio or None),
+        # Real spoken turns, recorded by the duplex session. Model-only
+        # benchmarking cannot produce these: there is no microphone in a loop
+        # that never listened to anything.
+        "measured": kernel.latency.stats(),
     }
 
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(render_report(payload), encoding="utf-8")
-    print(f"\n\nWrote {output}")
+    measured = payload["measured"]
+    if measured.get("turns"):
+        print(f"\n\nMeasured spoken turns: {measured['turns']} · slowest stage: {measured.get('slowest_stage')}")
+        for name, data in (measured.get("stages") or {}).items():
+            print(f"  {name:11s} median {data['median_ms']:>8} ms   p95 {data['p95_ms']:>8} ms")
+    else:
+        print("\n\nNo spoken turns recorded yet — hold a voice conversation to fill in the "
+              "hear/think/speak breakdown.")
+    print(f"\nWrote {output}")
     if args.json:
         print(json.dumps({"summary": payload, "samples": raw}, indent=2, default=str))
 

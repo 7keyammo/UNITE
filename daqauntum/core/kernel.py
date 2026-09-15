@@ -23,6 +23,7 @@ from tools.registry import ToolRegistry
 from voice import CallSessionManager, LocalVoiceEngine
 from universe import UniverseState
 from realtime import RealtimeSessionManager
+from realtime.timeline import LatencyRecorder
 from learning import LearningManager
 from native_model import NativeDatasetBuilder
 from connectors import ConnectorManager
@@ -113,6 +114,8 @@ class DaQauntumKernel:
         self.voice = LocalVoiceEngine(self.config.get("voice", {}))
         self.universe = UniverseState(self.memory, self.structured_memory, self.knowledge, self.sources, self.calls, self.runtime, kernel=self)
         self.realtime = RealtimeSessionManager()
+        # Measured per-stage voice latency, so slowness is attributable.
+        self.latency = LatencyRecorder(self.memory)
         self.learning = LearningManager(self, self.config.get("learning", {}))
         self.native_model = NativeDatasetBuilder(self.memory, project_root=self.config.get("learning", {}).get("project_root", "."), output_dir=self.config.get("native_model", {}).get("dataset_dir", "data/native_model/datasets"))
         # The lab prepares and evaluates native-model candidates. It never
@@ -180,6 +183,7 @@ class DaQauntumKernel:
             "identity": self.identity.stats(),
             "native_model": self.model_lab.stats(),
             "obsidian": self.obsidian_memory.stats(),
+            "latency": self.latency.stats(),
             "demo": self.demo.readiness(),
             "tools": [item["name"] for item in self.tools.descriptions()],
             "pending_approvals": list(self.pending),
