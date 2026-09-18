@@ -1,0 +1,17 @@
+# Optional v0.5 Scientific Core extras.
+#
+# DaQauntum's scientific layer is deliberately dependency-free: units, motion
+# analysis and plotting all work with nothing but the standard library, so the
+# system installs and runs anywhere. These packages are not required.
+#
+# Pint is used by evaluations/units_smoke_test.py to independently verify
+# DaQauntum's own dimensional analysis. Installing it turns that cross-check on.
+pint>=0.24
+
+# NumPy accelerates analysis over large measurement series. The pure-Python
+# paths remain authoritative and are what the tests exercise.
+numpy>=1.26
+
+# matplotlib produces publication-style figures. Without it DaQauntum falls back
+# to its built-in SVG renderer, so plots are always available.
+matplotlib>=3.8

@@ -172,6 +172,10 @@ REQUIRED = [
     "QUICKSTART.md",
     "computer/task.py",
     "evaluations/computer_task_smoke_test.py",
+    "science/units.py",
+    "evaluations/units_smoke_test.py",
+    "requirements-science.txt",
+    "BASELINE_REPORT.md",
 ]
 
 EXPECTED_VERSION = "0.4.2-dev"
