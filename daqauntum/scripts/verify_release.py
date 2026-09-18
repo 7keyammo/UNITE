@@ -180,6 +180,9 @@ REQUIRED = [
     "science/events.py",
     "science/store.py",
     "evaluations/science_smoke_test.py",
+    "science/analysis/__init__.py",
+    "science/analysis/motion.py",
+    "evaluations/motion_analysis_smoke_test.py",
 ]
 
 EXPECTED_VERSION = "0.4.2-dev"
