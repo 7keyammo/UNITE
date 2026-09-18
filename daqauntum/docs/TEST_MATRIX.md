@@ -26,6 +26,16 @@ PYTHONPATH=. python evaluations/smoke_test.py
 | Event bus/reaction rules/notifications | `evaluations/events_smoke_test.py` |
 | Device drivers/BLE/serial/MQTT/Home Assistant | `evaluations/drivers_smoke_test.py` |
 | Device identity/auth gate/mobile client | `evaluations/identity_smoke_test.py` |
+| Units/dimensions/uncertainty | `evaluations/units_smoke_test.py` |
+| Scientific models/events/persistence | `evaluations/science_smoke_test.py` |
+| Motion analysis | `evaluations/motion_analysis_smoke_test.py` |
+| ScienceCore facade | `evaluations/science_core_smoke_test.py` |
+| Sensor backends/ingestion | `evaluations/sensors_smoke_test.py` |
+| Plotting/artifacts | `evaluations/plots_smoke_test.py` |
+| Research/simulation backends | `evaluations/backends_smoke_test.py` |
+| Reference experiment | `evaluations/cart_motion_smoke_test.py` |
+| Physics registry/validation | `evaluations/validation_smoke_test.py` |
+| Anything in `science/` or `/api/science` | `evaluations/science_e2e_smoke_test.py` |
 
 ## Full matrix
 
@@ -63,3 +73,13 @@ The current suite is smoke/integration-heavy. Future work should add:
   `evaluations/drivers_smoke_test.py`;
 - a real-hardware sensor path validated on the target host, which the
   v0.4.1 definition of done still requires.
+
+## What the scientific suites are guarding
+
+These suites are unusual in that most of their cases assert a *refusal*. The
+property under test is that the system will not let a calculated, simulated,
+imported or AI-generated value be recorded, analysed, plotted, served over the
+API or reloaded from disk as a measurement of the world.
+
+If a change makes one of them fail, the question to ask first is not "how do I
+update the expectation" but "has the distinction just been broken".

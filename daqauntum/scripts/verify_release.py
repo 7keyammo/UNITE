@@ -199,9 +199,14 @@ REQUIRED = [
     "physics/concepts.py",
     "science/validation.py",
     "evaluations/validation_smoke_test.py",
+    "docs/SCIENTIFIC_CORE.md",
+    "docs/EVENTS.md",
+    "docs/INTEGRATIONS.md",
+    "docs/ROADMAP.md",
+    "docs/examples/cart_motion.md",
 ]
 
-EXPECTED_VERSION = "0.4.2-dev"
+EXPECTED_VERSION = "0.5.0"
 
 
 def main() -> None:

@@ -1,6 +1,6 @@
 # DaQauntum - Claude Code Engineering Contract
 
-You are working on **DaQauntum v0.4.2-dev**, a local-first persistent AI operating system / agent runtime. This repository is a working prototype with real subsystems for multimodel reasoning, memory, knowledge/provenance, voice, perception, permission-gated computer/device actions, autonomous learning, connected sources, workspaces, integrations, presence sensing, and a local GUI.
+You are working on **DaQauntum v0.5.0**, a local-first persistent AI operating system / agent runtime. This repository is a working prototype with real subsystems for multimodel reasoning, memory, knowledge/provenance, voice, perception, permission-gated computer/device actions, autonomous learning, connected sources, workspaces, integrations, presence sensing, and a local GUI.
 
 Your job is to **improve the existing system**, not rewrite it from scratch.
 

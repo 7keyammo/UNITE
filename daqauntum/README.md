@@ -1,7 +1,35 @@
-# DaQauntum v0.4.2-dev — Secure Mobile Client
+# DaQauntum v0.5.0 — Scientific Core
 
 DaQauntum builds on v0.4.0, the first release aimed at being **walk-up usable**
 rather than only developer-testable.
+
+v0.5.0 adds a **scientific core**: experiments, hypotheses, measurements,
+evidence and claims as first-class objects, with one job above all others —
+keeping different kinds of knowledge distinguishable.
+
+- **A measured value, a calculated one, a simulated one and an AI's reading of
+  the data are different things**, and the system will not let them blur. The
+  distinction is structural, not advisory: `record_measurement` refuses a
+  calculated value outright, `interpret()` fixes its own evidence kind so a
+  model's reading cannot be filed as a measurement, and a plot of generated
+  data says so on the image itself, where a screenshot carries it.
+- **Units and uncertainty**, with SI dimensional analysis over the seven base
+  dimensions and no third-party dependency. Adding a length to a mass raises.
+  Uncertainty propagates in quadrature, so a derived value never comes back
+  more certain than the readings it came from.
+- **Analysis you can check.** Displacement, velocity, acceleration and least
+  squares, with the equations written out in plain Python and stored on every
+  result alongside the ids of the measurements it consumed.
+- **Validation that fails closed.** It finds contradictions — a unit that does
+  not match its quantity, a claim citing evidence that does not exist — and
+  reports `UNCERTAIN` for anything it cannot check. There is no truth score,
+  no confidence number and no AI fact-checker.
+- **A hypothesis is never proven.** The status vocabulary is `proposed`,
+  `supported`, `contradicted`, `inconclusive`, `withdrawn`. A hypothesis
+  accumulates support; it does not graduate to truth.
+
+Start with `docs/examples/cart_motion.md` for a worked investigation end to
+end, and `docs/SCIENTIFIC_CORE.md` for the design.
 
 v0.4.2 adds secure remote access:
 

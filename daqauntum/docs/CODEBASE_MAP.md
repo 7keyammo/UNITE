@@ -115,3 +115,23 @@ DaQauntum may do; that stays with `core/permissions.py`.
 ## Tests
 
 Each major subsystem has a smoke test in `evaluations/`. These are integration-style regression guards, not a complete unit-test suite. New subsystems should normally receive both focused unit tests and a smoke/integration test.
+
+
+## v0.5 — scientific core
+
+| Path | What it does |
+| --- | --- |
+| `science/units.py` | SI dimensional analysis and uncertainty, no dependencies |
+| `science/models.py` | Experiment, Hypothesis, Measurement, Evidence, Claim, Provenance |
+| `science/events.py` | typed scientific events, exempt from bus suppression |
+| `science/store.py` | persistence on the kernel's SQLite connection |
+| `science/analysis/motion.py` | displacement, velocity, acceleration, least squares |
+| `science/core.py` | the `ScienceCore` facade and its refusals |
+| `science/sensors.py` | `SensorBackend`, `MockCartSensor`, `StaticSensor` |
+| `science/plots.py` | dependency-free SVG rendering |
+| `science/backends.py` | research and simulation adapters |
+| `science/validation.py` | fail-closed contradiction checks |
+| `science/reference/cart_motion.py` | the worked reference experiment |
+| `physics/concepts.py` | quantities, relations and the conditions they hold under |
+
+Tests: `evaluations/{units,science,motion_analysis,science_core,sensors,plots,backends,cart_motion,validation,science_e2e}_smoke_test.py`.

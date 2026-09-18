@@ -1,6 +1,47 @@
-# DaQauntum v0.4.0 Architecture — Presence + Guided Demo
+# DaQauntum Architecture
 
-## Goal
+## v0.5 — the scientific layer
+
+The scientific core sits beside the existing subsystems, not above them. It
+shares the kernel's one SQLite connection and its one event bus, and owns no
+transport, model or sensor of its own.
+
+```text
+                        SCIENTIFIC CORE
+                              │
+        Experiment → Hypothesis → Measurement → Analysis
+                              │
+                    Evidence (of a stated kind)
+                              │
+                           Claim
+                              │
+   ┌──────────────┬───────────┴───────────┬──────────────┐
+   │              │                       │              │
+ units        validation              backends        plots
+ (SI, ±)   (fail-closed)   sensors / research / sim    (SVG)
+```
+
+Three rules shape every arrow in that diagram.
+
+**Kinds of knowledge do not blur.** `EvidenceKind` separates measurement,
+observation, calculation, simulation, literature and interpretation.
+`Measurement.evidence_kind` is computed from the record rather than stored
+beside it, so a value cannot carry a label contradicting its own provenance.
+
+**Suppression is for telemetry, not for data.** The event bus deduplicates by
+design. Scientific events carry a dedupe key unique to the object they report,
+so two identical readings are always two events. An analysis over deduplicated
+data is an analysis of data that was silently altered.
+
+**Refusals over approximations.** Mismatched series raise rather than
+truncating; an unavailable sensor raises rather than returning a plausible
+number; an unimplemented adapter raises rather than returning an empty list.
+Where the system cannot do something correctly it says so, because every one
+of those alternatives produces a wrong answer that looks right.
+
+See `docs/SCIENTIFIC_CORE.md`, `docs/EVENTS.md` and `docs/INTEGRATIONS.md`.
+
+## Goal (v0.4)
 
 v0.4.0 turns the v0.3.x architecture into a coherent live assistant: a persistent brain with voice, memory, perception, external information, ambient awareness, and permission-gated action.
 

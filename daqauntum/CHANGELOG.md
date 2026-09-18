@@ -1,5 +1,75 @@
 # Changelog
 
+## v0.5.0 — Scientific Core
+
+A new layer that keeps kinds of knowledge distinguishable. DaQauntum v0.4 was
+not rewritten; v0.5 extends it, and every v0.4 subsystem and test still runs.
+
+### Added
+
+- `science/` — the scientific core:
+  - `units.py`, dependency-free SI dimensional analysis over the seven base
+    dimensions, with first-order uncertainty propagation in quadrature and
+    offset units handled correctly (and refused inside composites);
+  - `models.py` — Experiment, Hypothesis, Measurement, Evidence, Claim,
+    Provenance, and the `EvidenceKind` distinction the product turns on;
+  - `events.py` — typed scientific events whose dedupe keys are unique per
+    object, so bus suppression can never discard a measurement;
+  - `store.py` — SQLite persistence on the kernel's existing connection;
+  - `analysis/motion.py` — displacement, velocity, acceleration and least
+    squares, with every equation written out and every result auditable;
+  - `core.py` — the `ScienceCore` facade, and the refusals that keep the
+    record honest;
+  - `sensors.py`, `plots.py`, `backends.py`, `validation.py`,
+    `reference/cart_motion.py`.
+- `physics/concepts.py` — eleven quantities and seven relations, each relation
+  carrying the conditions under which it holds. A reference, not a solver.
+- SVG plotting with no plotting library, and the data's origin rendered onto
+  the image rather than only stored in metadata.
+- Eleven `/api/science` routes, and `kernel.science` sharing the one database
+  connection and the one event bus.
+- `Event.correlation_id` (additive migration) so a whole investigation can be
+  replayed as one sequence.
+- `measurements.provenance_kind` (additive migration) so "readings only" is a
+  query rather than a scan.
+- Seven new test suites: motion analysis, science core, sensors, plots,
+  backends, cart motion reference, end-to-end over HTTP, and validation.
+- `docs/SCIENTIFIC_CORE.md`, `docs/EVENTS.md`, `docs/INTEGRATIONS.md`,
+  `docs/ROADMAP.md`, `docs/examples/cart_motion.md`, `BASELINE_REPORT.md`.
+
+### Fixed
+
+- `Measurement.from_dict` read timestamps as `data.get("timestamp") or now()`.
+  Since `0.0` is falsy, the first sample of every run came back from storage
+  stamped with the wall clock; the series then re-sorted with its first sample
+  last and the displacement came back negative. A wrong answer with nothing
+  about it that looked wrong. Now an explicit absence check, with a named
+  regression test.
+- `store.stats()` counted "raw" measurements as not-derived-and-not-simulated,
+  which let imported example data be reported as measured. Readings are now
+  counted positively (human or sensor provenance, not derived).
+- A duplicate `native_model.project_root` default silently won the config deep
+  merge and resolved dataset paths against the process working directory, so
+  tests wrote into the repository. Removed, and `evaluations/smoke_test.py`
+  now fails if a test leaves a stray directory behind.
+
+### Deliberately not added
+
+- Automated truth scoring, in any form.
+- An AI fact-checker.
+- Open Science integration: `OpenScienceBackend` is a documented stub with no
+  network code. `search()` raises rather than returning an empty list, so a
+  missing integration is never mistaken for an absence of prior work.
+
+### Notes
+
+- `PASS` from the validator means specific checks found no contradiction. It
+  is not a statement that a result is correct, and unknowns resolve to
+  `UNCERTAIN` rather than being waved through.
+- Two acceptance criteria from v0.4.1 remain open and still need the user's
+  own machine: validating one real sensor path, and retesting a freshly
+  extracted release archive.
+
 ## Unreleased — Real-host convergence
 
 ### Added

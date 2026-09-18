@@ -4,7 +4,7 @@
 
 Develop DaQauntum as a secure, persistent, local-first intelligence service that can converse naturally, remember, learn from traceable evidence, perceive approved context, and operate digital/physical tools under explicit user control.
 
-Do not rebuild the project from scratch. Extend the existing v0.4.2-dev architecture.
+Do not rebuild the project from scratch. Extend the existing v0.5.0 architecture.
 
 ## Required context
 

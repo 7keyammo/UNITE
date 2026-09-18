@@ -1,8 +1,8 @@
 # DaQauntum — Run it on your machine
 
 ```bash
-unzip daqauntum-0.4.2-dev.zip
-cd daqauntum-0.4.2-dev
+unzip daqauntum-0.5.0.zip
+cd daqauntum-0.5.0
 
 python3 -m venv .venv
 source .venv/bin/activate

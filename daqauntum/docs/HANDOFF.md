@@ -29,7 +29,7 @@ The governing principle is:
 
 ## Current release
 
-Version: `0.4.2-dev`
+Version: `0.5.0`
 Codename: **Secure Mobile Client**
 
 Current primary entrypoints:
