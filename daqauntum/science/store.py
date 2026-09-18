@@ -108,11 +108,20 @@ class ScienceStore:
             )
             """
         )
+        # Additive migration: older databases predate the provenance column.
+        # Filtering on provenance is how a caller asks for readings of the world
+        # only, so it has to be a column rather than a scan of document_json.
+        columns = {row[1] for row in self.conn.execute("PRAGMA table_info(measurements)")}
+        if "provenance_kind" not in columns:
+            self.conn.execute(
+                "ALTER TABLE measurements ADD COLUMN provenance_kind TEXT NOT NULL DEFAULT 'human'"
+            )
         for statement in (
             "CREATE INDEX IF NOT EXISTS idx_hypotheses_experiment ON hypotheses(experiment_id)",
             "CREATE INDEX IF NOT EXISTS idx_measurements_experiment ON measurements(experiment_id)",
             "CREATE INDEX IF NOT EXISTS idx_measurements_quantity ON measurements(experiment_id, quantity)",
             "CREATE INDEX IF NOT EXISTS idx_measurements_run ON measurements(run_id)",
+            "CREATE INDEX IF NOT EXISTS idx_measurements_provenance ON measurements(experiment_id, provenance_kind)",
             "CREATE INDEX IF NOT EXISTS idx_evidence_experiment ON evidence(experiment_id)",
             "CREATE INDEX IF NOT EXISTS idx_evidence_kind ON evidence(kind)",
             "CREATE INDEX IF NOT EXISTS idx_claims_experiment ON claims(experiment_id)",
@@ -203,8 +212,9 @@ class ScienceStore:
         self.conn.execute(
             """
             INSERT INTO measurements(id, experiment_id, run_id, quantity, value, unit,
-                                     uncertainty, derived, timestamp, document_json)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                     uncertainty, derived, timestamp, provenance_kind,
+                                     document_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 value=excluded.value, unit=excluded.unit, uncertainty=excluded.uncertainty,
                 document_json=excluded.document_json
@@ -212,6 +222,7 @@ class ScienceStore:
             (measurement.id, measurement.experiment_id, measurement.run_id, measurement.quantity,
              measurement.value, measurement.unit, measurement.uncertainty,
              1 if measurement.derived else 0, measurement.timestamp,
+             measurement.provenance.kind.value,
              json.dumps(measurement.as_dict(), ensure_ascii=False, default=str)),
         )
         self.conn.commit()
@@ -224,12 +235,17 @@ class ScienceStore:
         quantity: str | None = None,
         run_id: str | None = None,
         include_derived: bool = True,
+        include_simulated: bool = True,
         limit: int = 10_000,
     ) -> list[Measurement]:
         """Measurements in time order.
 
         `include_derived=False` is how an analysis asks for raw readings only.
         Without it, a second analysis pass would happily consume its own output.
+
+        `include_simulated=False` additionally excludes values a simulator
+        produced. Both default to True so a caller sees the whole record; a
+        caller that needs only observations of the world says so explicitly.
         """
         clauses = ["experiment_id = ?"]
         params: list[Any] = [str(experiment_id)]
@@ -241,6 +257,8 @@ class ScienceStore:
             params.append(run_id)
         if not include_derived:
             clauses.append("derived = 0")
+        if not include_simulated:
+            clauses.append("provenance_kind != 'simulated'")
         params.append(max(1, min(int(limit), 100_000)))
         rows = self.conn.execute(
             f"SELECT document_json FROM measurements WHERE {' AND '.join(clauses)} "
@@ -353,14 +371,19 @@ class ScienceStore:
             "SELECT kind, COUNT(*) AS n FROM evidence GROUP BY kind"
         ).fetchall()
         raw = int(self.conn.execute(
-            "SELECT COUNT(*) AS n FROM measurements WHERE derived = 0"
+            "SELECT COUNT(*) AS n FROM measurements "
+            "WHERE derived = 0 AND provenance_kind != 'simulated'"
+        ).fetchone()["n"])
+        simulated = int(self.conn.execute(
+            "SELECT COUNT(*) AS n FROM measurements WHERE provenance_kind = 'simulated'"
         ).fetchone()["n"])
         return {
             "experiments": count("experiments"),
             "hypotheses": count("hypotheses"),
             "measurements": count("measurements"),
             "raw_measurements": raw,
-            "derived_measurements": count("measurements") - raw,
+            "simulated_measurements": simulated,
+            "derived_measurements": count("measurements") - raw - simulated,
             "evidence": count("evidence"),
             "evidence_by_kind": {row["kind"]: int(row["n"]) for row in by_kind},
             "claims": count("claims"),

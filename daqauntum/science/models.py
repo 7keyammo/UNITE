@@ -30,6 +30,24 @@ def now() -> float:
     return time.time()
 
 
+def _time(data: dict[str, Any], key: str) -> float:
+    """Read a stored time, falling back to now() only when it is absent.
+
+    Deliberately not `data.get(key) or now()`. A measurement taken at t = 0.0
+    is the first sample of almost every experiment, and 0.0 is falsy, so that
+    idiom replaced the start of each run with the wall clock. The series then
+    re-sorted with its first sample last and the displacement came back
+    negative - a wrong answer with nothing about it that looked wrong.
+    """
+    value = data.get(key)
+    if value is None:
+        return now()
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return now()
+
+
 class EvidenceKind(str, Enum):
     """Where a piece of knowledge came from.
 
@@ -151,7 +169,7 @@ class Provenance:
             agent=data.get("agent", ""),
             inputs=list(data.get("inputs") or []),
             method=data.get("method", ""),
-            created_at=float(data.get("created_at") or now()),
+            created_at=_time(data, "created_at"),
             notes=data.get("notes", ""),
         )
 
@@ -206,9 +224,24 @@ class Measurement:
         return Quantity.of(self.value, self.unit, self.uncertainty)
 
     @property
+    def is_simulated(self) -> bool:
+        """Whether this value came from a model rather than from the world."""
+        return self.provenance.kind is ProvenanceKind.SIMULATED
+
+    @property
     def evidence_kind(self) -> EvidenceKind:
-        """A derived measurement is a calculation, and says so."""
-        return EvidenceKind.CALCULATION if self.derived else EvidenceKind.MEASUREMENT
+        """What kind of knowledge this value actually is.
+
+        Read from what the record already says rather than stored separately,
+        so the two can never disagree. A derived value is a calculation; a
+        value a simulator produced is a simulation however realistic it looks;
+        only a reading of the world is a measurement.
+        """
+        if self.derived:
+            return EvidenceKind.CALCULATION
+        if self.is_simulated:
+            return EvidenceKind.SIMULATION
+        return EvidenceKind.MEASUREMENT
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -237,7 +270,7 @@ class Measurement:
             run_id=data.get("run_id", ""),
             source=data.get("source", ""),
             derived=bool(data.get("derived", False)),
-            timestamp=float(data.get("timestamp") or now()),
+            timestamp=_time(data, "timestamp"),
             id=data.get("id") or new_id("meas"),
             provenance=Provenance.from_dict(data.get("provenance") or {}),
             metadata=dict(data.get("metadata") or {}),
@@ -316,7 +349,7 @@ class Evidence:
             measurement_ids=list(data.get("measurement_ids") or []),
             artifact_path=data.get("artifact_path", ""),
             id=data.get("id") or new_id("ev"),
-            created_at=float(data.get("created_at") or now()),
+            created_at=_time(data, "created_at"),
             provenance=Provenance.from_dict(data.get("provenance") or {}),
             metadata=dict(data.get("metadata") or {}),
         )
@@ -373,8 +406,8 @@ class Hypothesis:
             supporting_evidence=list(data.get("supporting_evidence") or []),
             contradicting_evidence=list(data.get("contradicting_evidence") or []),
             id=data.get("id") or new_id("hyp"),
-            created_at=float(data.get("created_at") or now()),
-            updated_at=float(data.get("updated_at") or now()),
+            created_at=_time(data, "created_at"),
+            updated_at=_time(data, "updated_at"),
             provenance=Provenance.from_dict(data.get("provenance") or {}),
             metadata=dict(data.get("metadata") or {}),
         )
@@ -431,7 +464,7 @@ class Claim:
             status=ClaimStatus(data.get("status", "proposed")),
             author=data.get("author", "user"),
             id=data.get("id") or new_id("claim"),
-            created_at=float(data.get("created_at") or now()),
+            created_at=_time(data, "created_at"),
             provenance=Provenance.from_dict(data.get("provenance") or {}),
             metadata=dict(data.get("metadata") or {}),
         )
@@ -504,8 +537,8 @@ class Experiment:
             apparatus=list(data.get("apparatus") or []),
             procedure=list(data.get("procedure") or []),
             id=data.get("id") or new_id("exp"),
-            created_at=float(data.get("created_at") or now()),
-            updated_at=float(data.get("updated_at") or now()),
+            created_at=_time(data, "created_at"),
+            updated_at=_time(data, "updated_at"),
             provenance=Provenance.from_dict(data.get("provenance") or {}),
             metadata=dict(data.get("metadata") or {}),
         )

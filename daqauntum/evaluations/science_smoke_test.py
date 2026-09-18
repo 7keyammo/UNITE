@@ -201,6 +201,35 @@ def test_persistence_round_trip() -> None:
     assert stats["raw_measurements"] == 10 and stats["derived_measurements"] == 1, stats
 
 
+def test_time_zero_survives_a_round_trip() -> None:
+    """t = 0.0 is a real timestamp, not a missing one.
+
+    Regression: from_dict used `data.get("timestamp") or now()`, so the first
+    sample of a run - almost always t = 0 - came back from storage stamped with
+    the wall clock. The series then re-sorted with its first sample last, and
+    the displacement came back negative. Nothing about the result looked wrong,
+    which is what made it worth a test of its own.
+    """
+    store = _store("epoch.db")
+    reading = Measurement(quantity="time", value=0.0, unit="s",
+                          experiment_id="exp-epoch", timestamp=0.0)
+    assert reading.timestamp == 0.0
+    store.save_measurement(reading)
+
+    reloaded = store.get_measurement(reading.id)
+    assert reloaded.timestamp == 0.0, f"t=0 became {reloaded.timestamp}"
+
+    # Same rule for every other stored time.
+    experiment = Experiment(title="Epoch", id="exp-epoch")
+    experiment.created_at = 0.0
+    store.save_experiment(experiment)
+    assert store.get_experiment("exp-epoch").created_at == 0.0
+
+    # An absent or unreadable value still falls back rather than crashing.
+    assert Measurement.from_dict({"quantity": "t", "value": 1.0}).timestamp > 0
+    assert Measurement.from_dict(
+        {"quantity": "t", "value": 1.0, "timestamp": "not-a-time"}).timestamp > 0
+
 def main() -> None:
     test_knowledge_kinds_stay_distinct()
     test_measurement_validation_and_derivation()
@@ -208,6 +237,7 @@ def main() -> None:
     test_hypothesis_vocabulary_avoids_proof()
     test_identical_measurements_are_not_suppressed()
     test_persistence_round_trip()
+    test_time_zero_survives_a_round_trip()
     print("DaQauntum v0.5 scientific core smoke test: PASS")
 
 

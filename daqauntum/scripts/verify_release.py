@@ -185,6 +185,8 @@ REQUIRED = [
     "evaluations/motion_analysis_smoke_test.py",
     "science/core.py",
     "evaluations/science_core_smoke_test.py",
+    "science/sensors.py",
+    "evaluations/sensors_smoke_test.py",
 ]
 
 EXPECTED_VERSION = "0.4.2-dev"

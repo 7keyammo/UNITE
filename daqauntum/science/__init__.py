@@ -11,6 +11,13 @@ sit behind adapters. The core depends on none of them.
 """
 
 from science.core import ScienceCore, ScienceError
+from science.sensors import (
+    MockCartSensor,
+    SensorBackend,
+    SensorError,
+    SensorReading,
+    StaticSensor,
+)
 from science.units import (
     BASE_DIMENSIONS,
     DimensionalityError,
@@ -25,8 +32,13 @@ from science.units import (
 
 __all__ = [
     "BASE_DIMENSIONS",
+    "MockCartSensor",
     "ScienceCore",
     "ScienceError",
+    "SensorBackend",
+    "SensorError",
+    "SensorReading",
+    "StaticSensor",
     "DimensionalityError",
     "Quantity",
     "Unit",
