@@ -204,6 +204,7 @@ REQUIRED = [
     "docs/INTEGRATIONS.md",
     "docs/ROADMAP.md",
     "docs/examples/cart_motion.md",
+    "docs/V0.5_ENGINEERING_REPORT.md",
 ]
 
 EXPECTED_VERSION = "0.5.0"
