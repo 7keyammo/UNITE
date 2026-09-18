@@ -155,7 +155,7 @@ fires once, is auditable, and cannot gain extra authority.
 - [ ] At least one real sensor path validated on target hardware. **(outstanding — needs the physical machine; this is why VERSION is `0.4.1-dev`)**
 - [x] GUI shows recent events/rules/notifications.
 - [x] No passive event source can directly mutate external state.
-- [x] Fresh standalone ZIP passes full regression matrix. (verified: archive built excluding runtime state, extracted to a clean directory, fresh venv, 14/14 suites pass and `verify_release.py` passes. Repeat on the target host before shipping.)
+- [x] Fresh standalone ZIP passes full regression matrix. (re-verified at v0.5.0: archive built from `RELEASE_MANIFEST.txt`, extracted to a clean directory with no git and no development tree, 29/29 suites pass and `verify_release.py` passes at 197 required files. Repeat on the target host before shipping - this container is not it.)
 
 # v0.4.2 - Secure Mobile Client
 

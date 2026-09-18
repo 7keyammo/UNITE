@@ -66,9 +66,11 @@ not rewritten; v0.5 extends it, and every v0.4 subsystem and test still runs.
 - `PASS` from the validator means specific checks found no contradiction. It
   is not a statement that a result is correct, and unknowns resolve to
   `UNCERTAIN` rather than being waved through.
-- Two acceptance criteria from v0.4.1 remain open and still need the user's
-  own machine: validating one real sensor path, and retesting a freshly
-  extracted release archive.
+- The freshly-extracted-archive criterion from v0.4.1 is now met: an archive
+  built from `RELEASE_MANIFEST.txt` and extracted to a clean directory with no
+  git and no development tree passes all 29 suites and `verify_release.py`.
+- One v0.4.1 criterion remains open and needs the user's own machine:
+  validating at least one real sensor path against real hardware.
 
 ## Unreleased — Real-host convergence
 

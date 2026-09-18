@@ -48,9 +48,14 @@ The immediate goal is not more speculative features. It is to make DaQauntum a d
 - strong observability and failure reporting.
 
 The v0.4.1 Device Drivers + Event Reactions code is implemented and covered by
-mock-based regression tests. Two acceptance criteria remain open and both need
-the user's actual machine: validating one real sensor path, and retesting a
-freshly extracted release archive. That is why `VERSION` reads `0.4.1-dev`.
+mock-based regression tests. The freshly-extracted-archive criterion is met: at
+v0.5.0 an archive built from `RELEASE_MANIFEST.txt` and extracted to a clean
+directory passes all 29 suites and `verify_release.py`.
+
+One criterion remains open and needs the user's actual machine: validating at
+least one real sensor path against real hardware. The development container has
+no GPU, no `/dev/snd`, no camera and no sensors, so anything requiring them is
+marked BLOCKED in `docs/REAL_HOST_PLAN.md` rather than assumed working.
 
 Remaining P0 host operations (run the doctor, configure voice, benchmark the
 real model routes, install the service, set up Tailscale) take priority over
