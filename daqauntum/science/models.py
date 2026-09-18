@@ -229,6 +229,20 @@ class Measurement:
         return self.provenance.kind is ProvenanceKind.SIMULATED
 
     @property
+    def is_reading(self) -> bool:
+        """Whether somebody actually read this value off an instrument.
+
+        The single test for "did this come from the world". Everything else -
+        calculated, simulated, imported from a dataset or a textbook - is a
+        value this investigation did not measure, and callers that need to say
+        so should ask this rather than checking one origin at a time and
+        missing the others.
+        """
+        return not self.derived and self.provenance.kind in {
+            ProvenanceKind.HUMAN, ProvenanceKind.SENSOR,
+        }
+
+    @property
     def evidence_kind(self) -> EvidenceKind:
         """What kind of knowledge this value actually is.
 
@@ -241,6 +255,11 @@ class Measurement:
             return EvidenceKind.CALCULATION
         if self.is_simulated:
             return EvidenceKind.SIMULATION
+        if self.provenance.kind is ProvenanceKind.IMPORTED:
+            # A value that arrived from somewhere else - a textbook, a paper, a
+            # dataset - is not a reading this investigation took, however
+            # trustworthy its source. LITERATURE keeps that visible.
+            return EvidenceKind.LITERATURE
         return EvidenceKind.MEASUREMENT
 
     def as_dict(self) -> dict[str, Any]:

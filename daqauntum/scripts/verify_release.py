@@ -189,6 +189,11 @@ REQUIRED = [
     "evaluations/sensors_smoke_test.py",
     "science/plots.py",
     "evaluations/plots_smoke_test.py",
+    "science/backends.py",
+    "evaluations/backends_smoke_test.py",
+    "science/reference/__init__.py",
+    "science/reference/cart_motion.py",
+    "evaluations/cart_motion_smoke_test.py",
 ]
 
 EXPECTED_VERSION = "0.4.2-dev"

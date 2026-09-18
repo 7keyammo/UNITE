@@ -31,6 +31,13 @@ from typing import Any, Iterable, Sequence
 
 from science import events as science_events
 from science.analysis import AnalysisResult, MotionAnalysis, analyze_motion
+from science.backends import (
+    BackendUnavailable,
+    ResearchBackend,
+    ResearchResult,
+    SimulationBackend,
+    SimulationResult,
+)
 from science.plots import (
     Plot,
     PlotError,
@@ -453,7 +460,9 @@ class ScienceCore:
                      include_simulated=include_simulated)
         times = self.store.list_measurements(experiment_id, quantity=time_quantity, **query)
         positions = self.store.list_measurements(experiment_id, quantity=position_quantity, **query)
-        simulated_inputs = sum(1 for m in times + positions if m.is_simulated)
+        inputs = times + positions
+        simulated_inputs = sum(1 for m in inputs if m.is_simulated)
+        unmeasured = [m for m in inputs if not m.is_reading]
         try:
             analysis = analyze_motion(times, positions, experiment_id=experiment_id)
         except Exception as exc:
@@ -464,10 +473,21 @@ class ScienceCore:
             ))
             raise
 
-        if simulated_inputs:
+        if unmeasured:
+            # Name the actual origin where there is only one. "Not measured" is
+            # true of simulated, imported and calculated data alike, and a
+            # reader who is told only that cannot tell which problem they have.
+            origins = sorted({m.evidence_kind.value for m in unmeasured})
+            if simulated_inputs == len(unmeasured):
+                detail = "were simulated. These results describe a model, not a measured system."
+            elif len(origins) == 1:
+                detail = (f"were not measured ({origins[0]}). These results describe that "
+                          "data, not a measured system.")
+            else:
+                detail = (f"were not measured ({', '.join(origins)}). These results "
+                          "describe that data, not a measured system.")
             analysis.warnings.append(
-                f"{simulated_inputs} of {len(times) + len(positions)} input values were "
-                "simulated. These results describe a model, not a measured system."
+                f"{len(unmeasured)} of {len(inputs)} input values {detail}"
             )
 
         evidence: list[Evidence] = []
@@ -475,6 +495,10 @@ class ScienceCore:
             for result in (analysis.displacement, analysis.average_velocity,
                            analysis.average_acceleration):
                 if result is not None:
+                    if unmeasured:
+                        result.metadata["unmeasured_inputs"] = len(unmeasured)
+                        result.metadata["input_kinds"] = sorted(
+                            {m.evidence_kind.value for m in unmeasured})
                     if simulated_inputs:
                         result.metadata["simulated_inputs"] = simulated_inputs
                     evidence.append(self.record_analysis(
@@ -487,6 +511,7 @@ class ScienceCore:
             results=[r.name for r in analysis.results()],
             warnings=list(analysis.warnings),
             simulated_inputs=simulated_inputs,
+            unmeasured_inputs=len(unmeasured),
         ))
         return analysis, evidence
 
@@ -571,9 +596,14 @@ class ScienceCore:
             experiment_id, quantity=position_quantity, **query)
 
         saved: list[tuple[Path, Evidence]] = []
-        kind = (EvidenceKind.SIMULATION
-                if times and all(m.is_simulated for m in times + positions)
-                else EvidenceKind.CALCULATION)
+        # A plot is evidence of the kind its data was. All-simulated draws a
+        # SIMULATION chart, all-imported a LITERATURE one; anything mixed falls
+        # back to CALCULATION, which claims the least.
+        inputs = times + positions
+        kinds = {m.evidence_kind for m in inputs}
+        kind = kinds.pop() if len(kinds) == 1 and inputs else EvidenceKind.CALCULATION
+        if kind is EvidenceKind.MEASUREMENT:
+            kind = EvidenceKind.CALCULATION
         saved.append(self.save_plot(
             experiment_id, position_time_plot(times, positions, analysis=analysis),
             filename="position-time", kind=kind, correlation_id=correlation_id,
@@ -671,6 +701,111 @@ class ScienceCore:
 
     def list_evidence(self, experiment_id: str, **kwargs: Any) -> list[Evidence]:
         return self.store.list_evidence(experiment_id, **kwargs)
+
+    # Backends ----------------------------------------------------------------
+    def research(
+        self,
+        backend: ResearchBackend,
+        query: str,
+        *,
+        experiment_id: str = "",
+        limit: int = 10,
+        record: bool = False,
+        correlation_id: str | None = None,
+    ) -> list[ResearchResult]:
+        """Look up prior work, and optionally file what comes back.
+
+        Results are returned for a person to read. Nothing is recorded unless
+        `record` is set, and what is recorded is LITERATURE evidence: someone
+        else measured it, which is a different position from having measured it
+        here.
+
+        A backend that is unavailable raises. An unavailable lookup must never
+        return an empty list, because "nothing came back" and "nothing has been
+        published" are different facts.
+        """
+        correlation_id = correlation_id or self.new_correlation_id()
+        self._publish(science_events.job(
+            science_events.EventKind.RESEARCH_REQUESTED, backend.name,
+            experiment_id=experiment_id, correlation_id=correlation_id, query=query,
+        ))
+        try:
+            backend.require_available()
+            results = backend.search(query, limit=limit)
+        except Exception as exc:
+            self._publish(science_events.job(
+                science_events.EventKind.RESEARCH_FAILED, backend.name,
+                experiment_id=experiment_id, correlation_id=correlation_id,
+                severity="warning", error=str(exc),
+            ))
+            raise
+        if record and experiment_id:
+            for result in results:
+                evidence = result.as_evidence(experiment_id)
+                self.store.save_evidence(evidence)
+                self._publish(science_events.evidence_created(evidence, correlation_id))
+        self._publish(science_events.job(
+            science_events.EventKind.RESEARCH_COMPLETED, backend.name,
+            experiment_id=experiment_id, correlation_id=correlation_id,
+            results=len(results), recorded=bool(record and experiment_id),
+        ))
+        return results
+
+    def simulate(
+        self,
+        experiment_id: str,
+        backend: SimulationBackend,
+        *,
+        run_id: str = "",
+        record: bool = True,
+        correlation_id: str | None = None,
+        **parameters: Any,
+    ) -> tuple[SimulationResult, list[Measurement]]:
+        """Run a model and store its output as simulated values.
+
+        The model name and its stated assumptions are attached to every value,
+        so a trajectory can be read back with the conditions it assumed rather
+        than as a description of a real object.
+        """
+        correlation_id = correlation_id or self.new_correlation_id()
+        self._publish(science_events.job(
+            science_events.EventKind.SIMULATION_REQUESTED, backend.name,
+            experiment_id=experiment_id, correlation_id=correlation_id,
+        ))
+        try:
+            backend.require_available()
+            result = backend.run(**parameters)
+        except Exception as exc:
+            self._publish(science_events.job(
+                science_events.EventKind.SIMULATION_FAILED, backend.name,
+                experiment_id=experiment_id, correlation_id=correlation_id,
+                severity="warning", error=str(exc),
+            ))
+            raise
+
+        stored: list[Measurement] = []
+        if record:
+            metadata = {"model": result.model, "parameters": dict(result.parameters),
+                        "assumptions": list(result.assumptions)}
+            for index, value in enumerate(result.values):
+                timestamp = result.times[index] if result.times else float(index)
+                if result.times:
+                    stored.append(self.record_simulation(
+                        experiment_id, "time", timestamp, "s", simulator=result.model,
+                        run_id=run_id, timestamp=timestamp, metadata=metadata,
+                        correlation_id=correlation_id,
+                    ))
+                stored.append(self.record_simulation(
+                    experiment_id, result.quantity, value, result.unit,
+                    simulator=result.model, run_id=run_id, timestamp=timestamp,
+                    metadata=metadata, correlation_id=correlation_id,
+                ))
+        self._publish(science_events.job(
+            science_events.EventKind.SIMULATION_COMPLETED, backend.name,
+            experiment_id=experiment_id, correlation_id=correlation_id,
+            values=len(result.values), recorded=len(stored),
+        ))
+        return result, stored
 
     # Claims ------------------------------------------------------------------
     def make_claim(

@@ -10,6 +10,17 @@ External systems - language models, simulators, sensors, research platforms -
 sit behind adapters. The core depends on none of them.
 """
 
+from science.backends import (
+    BackendError,
+    BackendUnavailable,
+    KinematicSimulation,
+    LocalResearchBackend,
+    OpenScienceBackend,
+    ResearchBackend,
+    ResearchResult,
+    SimulationBackend,
+    SimulationResult,
+)
 from science.core import ScienceCore, ScienceError
 from science.plots import Plot, PlotError, Series, render_svg, write_svg
 from science.sensors import (
@@ -33,6 +44,15 @@ from science.units import (
 
 __all__ = [
     "BASE_DIMENSIONS",
+    "BackendError",
+    "BackendUnavailable",
+    "KinematicSimulation",
+    "LocalResearchBackend",
+    "OpenScienceBackend",
+    "ResearchBackend",
+    "ResearchResult",
+    "SimulationBackend",
+    "SimulationResult",
     "MockCartSensor",
     "Plot",
     "PlotError",

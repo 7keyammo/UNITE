@@ -236,6 +236,7 @@ class ScienceStore:
         run_id: str | None = None,
         include_derived: bool = True,
         include_simulated: bool = True,
+        readings_only: bool = False,
         limit: int = 10_000,
     ) -> list[Measurement]:
         """Measurements in time order.
@@ -246,6 +247,11 @@ class ScienceStore:
         `include_simulated=False` additionally excludes values a simulator
         produced. Both default to True so a caller sees the whole record; a
         caller that needs only observations of the world says so explicitly.
+
+        `readings_only=True` is that request stated positively: values somebody
+        read off an instrument, excluding derived, simulated and imported
+        alike. Prefer it over listing the origins to exclude, which silently
+        admits any origin added later.
         """
         clauses = ["experiment_id = ?"]
         params: list[Any] = [str(experiment_id)]
@@ -259,6 +265,8 @@ class ScienceStore:
             clauses.append("derived = 0")
         if not include_simulated:
             clauses.append("provenance_kind != 'simulated'")
+        if readings_only:
+            clauses.append("derived = 0 AND provenance_kind IN ('human', 'sensor')")
         params.append(max(1, min(int(limit), 100_000)))
         rows = self.conn.execute(
             f"SELECT document_json FROM measurements WHERE {' AND '.join(clauses)} "
@@ -370,12 +378,22 @@ class ScienceStore:
         by_kind = self.conn.execute(
             "SELECT kind, COUNT(*) AS n FROM evidence GROUP BY kind"
         ).fetchall()
+        # "Raw" means somebody read it off an instrument. Counting by what a
+        # value is not - not derived, not simulated - quietly let imported
+        # example data be reported as measured.
         raw = int(self.conn.execute(
             "SELECT COUNT(*) AS n FROM measurements "
-            "WHERE derived = 0 AND provenance_kind != 'simulated'"
+            "WHERE derived = 0 AND provenance_kind IN ('human', 'sensor')"
         ).fetchone()["n"])
         simulated = int(self.conn.execute(
             "SELECT COUNT(*) AS n FROM measurements WHERE provenance_kind = 'simulated'"
+        ).fetchone()["n"])
+        imported = int(self.conn.execute(
+            "SELECT COUNT(*) AS n FROM measurements "
+            "WHERE derived = 0 AND provenance_kind = 'imported'"
+        ).fetchone()["n"])
+        derived = int(self.conn.execute(
+            "SELECT COUNT(*) AS n FROM measurements WHERE derived = 1"
         ).fetchone()["n"])
         return {
             "experiments": count("experiments"),
@@ -383,7 +401,8 @@ class ScienceStore:
             "measurements": count("measurements"),
             "raw_measurements": raw,
             "simulated_measurements": simulated,
-            "derived_measurements": count("measurements") - raw - simulated,
+            "imported_measurements": imported,
+            "derived_measurements": derived,
             "evidence": count("evidence"),
             "evidence_by_kind": {row["kind"]: int(row["n"]) for row in by_kind},
             "claims": count("claims"),

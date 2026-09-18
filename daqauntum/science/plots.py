@@ -300,15 +300,31 @@ def render_matplotlib(plot: Plot, path: str | Path) -> Path:
 # Builders --------------------------------------------------------------------
 def _data_note(measurements: Sequence[Measurement]) -> str:
     """The sentence printed on the plot describing where the data came from."""
-    simulated = sum(1 for m in measurements if m.is_simulated)
-    derived = sum(1 for m in measurements if m.derived)
-    if simulated and simulated == len(measurements):
+    if not measurements:
+        return ""
+    unmeasured = [m for m in measurements if not m.is_reading]
+    if not unmeasured:
+        return ""
+
+    simulated = sum(1 for m in unmeasured if m.is_simulated)
+    imported = sum(1 for m in unmeasured if m.evidence_kind is EvidenceKind.LITERATURE)
+    total = len(measurements)
+
+    if simulated == total:
         return "SIMULATED DATA - generated from a model, not measured."
+    if imported == total:
+        return "EXAMPLE / IMPORTED DATA - not measured by this investigation."
+    if len(unmeasured) == total:
+        return "NOT MEASURED - every value shown was calculated, simulated or imported."
+    parts = []
     if simulated:
-        return f"MIXED DATA - {simulated} of {len(measurements)} values were simulated."
-    if derived:
-        return f"Includes {derived} calculated values."
-    return ""
+        parts.append(f"{simulated} simulated")
+    if imported:
+        parts.append(f"{imported} imported")
+    calculated = len(unmeasured) - simulated - imported
+    if calculated:
+        parts.append(f"{calculated} calculated")
+    return f"MIXED DATA - {len(unmeasured)} of {total} values were not measured ({', '.join(parts)})."
 
 
 def position_time_plot(
@@ -378,8 +394,12 @@ def velocity_time_plot(
 
     note = ""
     for warning in analysis.warnings:
-        if "simulated" in warning.lower():
+        lowered = warning.lower()
+        if "were simulated" in lowered:
             note = "SIMULATED DATA - generated from a model, not measured."
+            break
+        if "were not measured" in lowered:
+            note = "NOT MEASURED - derived from data this investigation did not measure."
             break
     return Plot(
         title=title,
