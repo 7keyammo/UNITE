@@ -39,7 +39,11 @@ class NativeModelLab:
     def __init__(self, kernel, config: dict[str, Any] | None = None):
         self.kernel = kernel
         self.config = dict(config or {})
-        self.root = Path(self.config.get("project_root", ".")).resolve()
+        # Fall back to the kernel's project root rather than the process working
+        # directory. Defaulting to "." made a test's relative dataset_dir escape
+        # its fixture and write into the repository itself.
+        default_root = (kernel.config.get("tools", {}) or {}).get("project_root", ".")
+        self.root = Path(self.config.get("project_root") or default_root).resolve()
         self.datasets_dir = (self.root / self.config.get("dataset_dir", "data/native_model/datasets")).resolve()
         self.runs_dir = (self.root / self.config.get("runs_dir", "data/native_model/runs")).resolve()
         self.datasets_dir.mkdir(parents=True, exist_ok=True)

@@ -208,7 +208,10 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "min_export_confidence": 0.0,
     },
     "native_model": {
-        "project_root": ".",
+        # No project_root here on purpose: the lab inherits tools.project_root so
+        # there is exactly one project root. A "." default here silently won the
+        # deep merge and resolved relative dataset paths against the process
+        # working directory instead.
         "dataset_dir": "data/native_model/datasets",
         "runs_dir": "data/native_model/runs",
         "models_dir": "data/native_model/models",

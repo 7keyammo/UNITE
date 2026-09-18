@@ -157,7 +157,38 @@ def create_v024_database(path: Path) -> None:
     conn.close()
 
 
+# Directories a clean checkout contains. Anything else appearing at the top
+# level after a test run means a fixture escaped into the repository.
+_EXPECTED_TOP_LEVEL = {
+    "agents", "computer", "connectors", "core", "data", "demo", "deploy", "docs",
+    "drivers", "evaluations", "events", "handoff", "identity", "integrations",
+    "interface", "knowledge", "learning", "memory", "models", "native_model",
+    "obsidian", "perception", "presence", "realtime", "runtime", "scripts",
+    "tools", "universe", "vision", "voice", "workspaces", "physics", "science",
+    ".git", ".venv", "__pycache__", ".pytest_cache",
+}
+
+
+def test_repository_stays_clean() -> None:
+    """Tests must write inside their fixtures, never into the repository.
+
+    A relative path in a test config is resolved against the process working
+    directory, so an unnoticed one silently deposits build output next to the
+    source. A baseline that pollutes its own repository is not a baseline.
+    """
+    root = Path(__file__).resolve().parents[1]
+    unexpected = sorted(
+        item.name for item in root.iterdir()
+        if item.is_dir() and item.name not in _EXPECTED_TOP_LEVEL
+    )
+    assert not unexpected, (
+        f"test fixtures leaked into the repository root: {unexpected}. "
+        "A config path is relative where it should be absolute."
+    )
+
+
 def main() -> None:
+    test_repository_stays_clean()
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         kernel = build_kernel(root, permission_level=2)
