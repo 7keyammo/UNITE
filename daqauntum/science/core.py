@@ -26,10 +26,19 @@ Those arrive through adapters the caller passes in.
 """
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Iterable, Sequence
 
 from science import events as science_events
 from science.analysis import AnalysisResult, MotionAnalysis, analyze_motion
+from science.plots import (
+    Plot,
+    PlotError,
+    position_time_plot,
+    residual_plot,
+    velocity_time_plot,
+    write_svg,
+)
 from science.sensors import SensorBackend, SensorError, SensorReading
 from science.models import (
     Claim,
@@ -55,9 +64,13 @@ class ScienceError(ValueError):
 class ScienceCore:
     """Experiment lifecycle, persistence and events in one place."""
 
-    def __init__(self, memory, *, events=None, store: ScienceStore | None = None):
+    def __init__(self, memory, *, events=None, store: ScienceStore | None = None,
+                 artifacts_dir: str | Path = "data/science/artifacts"):
         self.memory = memory
         self.store = store or ScienceStore(memory)
+        # Plots are written here. Kept out of the database: an SVG is a file a
+        # user wants to open, attach and diff, not a blob to extract first.
+        self.artifacts_dir = Path(artifacts_dir)
         # Optional: the core is fully usable with no bus attached, which keeps
         # tests and scripts from needing the whole event pipeline.
         self.events = events
@@ -500,6 +513,82 @@ class ScienceCore:
         self.store.save_evidence(evidence)
         self._publish(science_events.evidence_created(evidence, correlation_id))
         return evidence
+
+    # Visualization -----------------------------------------------------------
+    def save_plot(
+        self,
+        experiment_id: str,
+        plot: Plot,
+        *,
+        filename: str = "",
+        kind: EvidenceKind = EvidenceKind.CALCULATION,
+        correlation_id: str | None = None,
+    ) -> tuple[Path, Evidence]:
+        """Write a plot as SVG and record it as evidence of its data's kind.
+
+        The evidence kind is the caller's to state and defaults to CALCULATION,
+        because a chart is a rendering of values, never a stronger claim than
+        the values it draws.
+        """
+        correlation_id = correlation_id or self.new_correlation_id()
+        self._publish(science_events.job(
+            science_events.EventKind.VISUALIZATION_REQUESTED, plot.title,
+            experiment_id=experiment_id, correlation_id=correlation_id,
+        ))
+        safe = "".join(c if c.isalnum() or c in "-_" else "-" for c in (filename or plot.title))
+        target = self.artifacts_dir / experiment_id / f"{safe.strip('-').lower()}.svg"
+        write_svg(plot, target)
+
+        evidence = plot.as_evidence(experiment_id, target, kind=kind)
+        self.store.save_evidence(evidence)
+        self._publish(science_events.evidence_created(evidence, correlation_id))
+        self._publish(science_events.job(
+            science_events.EventKind.VISUALIZATION_COMPLETED, plot.title,
+            experiment_id=experiment_id, correlation_id=correlation_id,
+            path=str(target), evidence_id=evidence.id,
+        ))
+        return target, evidence
+
+    def plot_motion(
+        self,
+        experiment_id: str,
+        analysis: MotionAnalysis,
+        *,
+        time_quantity: str = "time",
+        position_quantity: str = "position",
+        run_id: str = "",
+        include_residuals: bool = False,
+        correlation_id: str | None = None,
+    ) -> list[tuple[Path, Evidence]]:
+        """Position-time and velocity-time plots for a completed analysis.
+
+        Reads the same raw values the analysis used, so the chart cannot end up
+        drawn from a different set of readings than the numbers beside it.
+        """
+        query = dict(run_id=run_id or None, include_derived=False)
+        times = self.store.list_measurements(experiment_id, quantity=time_quantity, **query)
+        positions = self.store.list_measurements(
+            experiment_id, quantity=position_quantity, **query)
+
+        saved: list[tuple[Path, Evidence]] = []
+        kind = (EvidenceKind.SIMULATION
+                if times and all(m.is_simulated for m in times + positions)
+                else EvidenceKind.CALCULATION)
+        saved.append(self.save_plot(
+            experiment_id, position_time_plot(times, positions, analysis=analysis),
+            filename="position-time", kind=kind, correlation_id=correlation_id,
+        ))
+        if analysis.interval_velocities:
+            saved.append(self.save_plot(
+                experiment_id, velocity_time_plot(analysis),
+                filename="velocity-time", kind=kind, correlation_id=correlation_id,
+            ))
+        if include_residuals and (analysis.fit or {}).get("residuals"):
+            saved.append(self.save_plot(
+                experiment_id, residual_plot(analysis, times),
+                filename="fit-residuals", kind=kind, correlation_id=correlation_id,
+            ))
+        return saved
 
     # Evidence ----------------------------------------------------------------
     def record_evidence(
