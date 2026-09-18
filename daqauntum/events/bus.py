@@ -55,14 +55,21 @@ class EventBus:
                 dedupe_key TEXT NOT NULL,
                 fingerprint TEXT NOT NULL DEFAULT '',
                 occurred_at REAL NOT NULL DEFAULT 0,
+                correlation_id TEXT,
                 repeat_count INTEGER NOT NULL DEFAULT 0,
                 last_repeat_at REAL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
             """
         )
+        # Additive migration: databases created before v0.5 have no
+        # correlation_id column, and there is no migration framework.
+        existing = {row[1] for row in self.memory.conn.execute("PRAGMA table_info(device_events)")}
+        if "correlation_id" not in existing:
+            self.memory.conn.execute("ALTER TABLE device_events ADD COLUMN correlation_id TEXT")
         for statement in (
             "CREATE INDEX IF NOT EXISTS idx_device_events_id ON device_events(id DESC)",
+            "CREATE INDEX IF NOT EXISTS idx_device_events_correlation ON device_events(correlation_id)",
             "CREATE INDEX IF NOT EXISTS idx_device_events_dedupe ON device_events(dedupe_key, id DESC)",
             "CREATE INDEX IF NOT EXISTS idx_device_events_source ON device_events(source)",
             "CREATE INDEX IF NOT EXISTS idx_device_events_kind ON device_events(kind)",
@@ -193,8 +200,8 @@ class EventBus:
             """
             INSERT INTO device_events(
                 source, kind, subject, severity, message,
-                attributes_json, dedupe_key, fingerprint, occurred_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                attributes_json, dedupe_key, fingerprint, occurred_at, correlation_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 event.source,
@@ -206,6 +213,7 @@ class EventBus:
                 event.dedupe_key,
                 event.state_fingerprint,
                 event.occurred_at,
+                event.correlation_id,
             ),
         )
         self.memory.conn.execute(

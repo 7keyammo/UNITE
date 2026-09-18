@@ -176,6 +176,10 @@ REQUIRED = [
     "evaluations/units_smoke_test.py",
     "requirements-science.txt",
     "BASELINE_REPORT.md",
+    "science/models.py",
+    "science/events.py",
+    "science/store.py",
+    "evaluations/science_smoke_test.py",
 ]
 
 EXPECTED_VERSION = "0.4.2-dev"

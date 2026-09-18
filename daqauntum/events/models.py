@@ -77,6 +77,10 @@ class Event:
     occurred_at: float = field(default_factory=time.time)
     dedupe_key: str | None = None
     event_id: int | None = None
+    # Ties the events of one workflow together - an experiment run, an analysis
+    # job - so a consumer can reassemble a sequence without inferring it from
+    # timestamps.
+    correlation_id: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "source", _slug(self.source, "unknown"))
@@ -128,6 +132,7 @@ class Event:
             "severity": self.severity,
             "message": self.message,
             "occurred_at": self.occurred_at,
+            "correlation_id": self.correlation_id,
         }
         if key in top:
             return top[key]
@@ -158,6 +163,7 @@ class Event:
             "attributes": dict(self.attributes),
             "occurred_at": self.occurred_at,
             "dedupe_key": self.dedupe_key,
+            "correlation_id": self.correlation_id,
         }
 
     def with_id(self, event_id: int | None) -> "Event":
@@ -171,6 +177,7 @@ class Event:
             occurred_at=self.occurred_at,
             dedupe_key=self.dedupe_key,
             event_id=event_id,
+            correlation_id=self.correlation_id,
         )
 
     @classmethod
@@ -190,6 +197,7 @@ class Event:
             occurred_at=data.get("occurred_at", 0.0),
             dedupe_key=data.get("dedupe_key"),
             event_id=data.get("id"),
+            correlation_id=data.get("correlation_id"),
         )
 
 
