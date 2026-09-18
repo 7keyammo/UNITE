@@ -207,6 +207,12 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "import_limit": 1000,
         "min_export_confidence": 0.0,
     },
+    "science": {
+        "enabled": True,
+        # Plots are files a user opens and attaches, so they live on disk
+        # beside the rest of the workspace data rather than in the database.
+        "artifacts_dir": "data/science/artifacts",
+    },
     "native_model": {
         # No project_root here on purpose: the lab inherits tools.project_root so
         # there is exactly one project root. A "." default here silently won the

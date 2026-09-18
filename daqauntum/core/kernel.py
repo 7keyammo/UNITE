@@ -26,6 +26,7 @@ from realtime import RealtimeSessionManager
 from realtime.timeline import LatencyRecorder
 from learning import LearningManager
 from native_model import NativeDatasetBuilder
+from science.core import ScienceCore
 from connectors import ConnectorManager
 from workspaces import WorkspaceManager, AgentWorkbench, ObsidianExporter
 from integrations import IntegrationManager
@@ -131,6 +132,15 @@ class DaQauntumKernel:
         # never the authoritative store, and DaQauntum never re-indexes
         # its own exported notes as independent sources.
         self.obsidian_memory = ObsidianMemoryBridge(self, self.config.get("obsidian", {}))
+        # The scientific core. It shares the one SQLite connection and the one
+        # event bus; it owns no transport, no model and no sensor of its own.
+        science_cfg = self.config.get("science", {})
+        self.science = ScienceCore(
+            self.memory,
+            events=self.events,
+            artifacts_dir=Path(self.config.get("tools", {}).get("project_root", "."))
+            / science_cfg.get("artifacts_dir", "data/science/artifacts"),
+        )
         self.demo = DemoManager(self, self.config.get("demo", {}))
         self.duplex_endpoint = {"enabled": False, "host": None, "port": None}
         self.device_bridge_endpoint = {"enabled": False, "host": None, "port": None, "url": None, "pairing_code": None}

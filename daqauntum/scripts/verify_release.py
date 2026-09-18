@@ -194,6 +194,7 @@ REQUIRED = [
     "science/reference/__init__.py",
     "science/reference/cart_motion.py",
     "evaluations/cart_motion_smoke_test.py",
+    "evaluations/science_e2e_smoke_test.py",
 ]
 
 EXPECTED_VERSION = "0.4.2-dev"

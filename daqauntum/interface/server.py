@@ -10,6 +10,14 @@ from urllib.parse import parse_qs, urlparse
 
 from computer.task import TaskError
 from identity import IdentityError
+from science.backends import (
+    KinematicSimulation,
+    LocalResearchBackend,
+    OpenScienceBackend,
+)
+from science.models import Provenance
+from science.reference import run_cart_motion
+from science.sensors import MockCartSensor
 
 
 class DaQauntumHTTPServer(ThreadingHTTPServer):
@@ -52,6 +60,7 @@ READ_SCOPES: tuple[tuple[str, str], ...] = (
     ("/api/computer/tasks", "read"),
     ("/api/notifications", "read"),
     ("/api/demo", "read"),
+    ("/api/science", "read"),
     ("/api/calls", "chat"),
     ("/api/call", "chat"),
     ("/api/voice", "chat"),
@@ -68,6 +77,10 @@ WRITE_SCOPES: tuple[tuple[str, str], ...] = (
     ("/api/realtime", "chat"),
     ("/api/remember", "chat"),
     ("/api/capture", "ingest"),
+    # Recording scientific data is data ingestion, so it rides with the
+    # scope a sensor already uses. Nothing under /api/science executes a
+    # tool or changes anything outside the scientific record.
+    ("/api/science", "ingest"),
     ("/api/obsidian", "admin"),
     ("/api/approve", "approve"),
     ("/api/events/proposals/resolve", "approve"),
@@ -250,6 +263,42 @@ class DaQauntumRequestHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/runtime":
             self._json({"ok": True, "runtime": kernel.runtime.status()})
+            return
+        if path == "/api/science":
+            self._json({"ok": True, "science": kernel.science.stats()})
+            return
+        if path == "/api/science/experiments":
+            limit = max(1, min(int((query.get("limit") or ["50"])[0] or 50), 200))
+            status = (query.get("status") or [""])[0] or None
+            experiments = kernel.science.list_experiments(limit=limit, status=status)
+            self._json({"ok": True, "experiments": [e.as_dict() for e in experiments]})
+            return
+        if path == "/api/science/experiment":
+            experiment_id = (query.get("id") or [""])[0].strip()
+            record = kernel.science.experiment_record(experiment_id) if experiment_id else None
+            if record is None:
+                self._json({"ok": False, "error": f"No experiment {experiment_id!r}"},
+                           HTTPStatus.NOT_FOUND)
+                return
+            self._json({"ok": True, "record": record})
+            return
+        if path == "/api/science/measurements":
+            experiment_id = (query.get("id") or [""])[0].strip()
+            readings_only = (query.get("readings_only") or ["0"])[0] in {"1", "true", "yes"}
+            items = kernel.science.list_measurements(
+                experiment_id, readings_only=readings_only) if experiment_id else []
+            self._json({"ok": True, "measurements": [m.as_dict() for m in items]})
+            return
+        if path == "/api/science/backends":
+            # What is actually usable, stated plainly. An unimplemented adapter
+            # reports itself as unimplemented rather than being hidden, so a
+            # caller is never left to infer that a gap is an empty result.
+            self._json({"ok": True, "backends": {
+                "research": [LocalResearchBackend(kernel.science.store).describe(),
+                             OpenScienceBackend().describe()],
+                "simulation": [KinematicSimulation().describe()],
+                "sensors": [MockCartSensor().describe()],
+            }})
             return
         if path == "/api/universe":
             self._json({"ok": True, "universe": kernel.universe_snapshot()})
@@ -850,6 +899,83 @@ class DaQauntumRequestHandler(BaseHTTPRequestHandler):
         if path == "/api/workspaces/active":
             item = kernel.workspaces.set_active(payload.get("workspace_id"))
             self._json({"ok": True, "workspace": item, "stats": kernel.workspaces.stats()})
+            return
+
+        if path == "/api/science/experiment":
+            experiment = kernel.science.create_experiment(
+                str(payload.get("title", "")).strip() or "Untitled experiment",
+                research_question=str(payload.get("research_question", "")).strip(),
+                description=str(payload.get("description", "")).strip(),
+                depth=str(payload.get("depth", "intermediate")),
+                independent_variables=[str(x) for x in (payload.get("independent_variables") or [])],
+                dependent_variables=[str(x) for x in (payload.get("dependent_variables") or [])],
+            )
+            self._json({"ok": True, "experiment": experiment.as_dict()})
+            return
+
+        if path == "/api/science/hypothesis":
+            hypothesis = kernel.science.propose_hypothesis(
+                str(payload.get("experiment_id", "")).strip(),
+                str(payload.get("statement", "")).strip(),
+                rationale=str(payload.get("rationale", "")).strip(),
+                expected_relationship=str(payload.get("expected_relationship", "")).strip(),
+            )
+            self._json({"ok": True, "hypothesis": hypothesis.as_dict()})
+            return
+
+        if path == "/api/science/measurement":
+            # Recorded as a human reading, because that is what a person typing
+            # a value into the GUI is doing. The API deliberately offers no way
+            # to post a calculated, simulated or AI-sourced value as a reading;
+            # those arrive through the analysis, simulation and interpretation
+            # paths, which label them.
+            measurement = kernel.science.record_measurement(
+                str(payload.get("experiment_id", "")).strip(),
+                str(payload.get("quantity", "")).strip(),
+                float(payload.get("value", 0.0)),
+                str(payload.get("unit", "")).strip(),
+                uncertainty=(None if payload.get("uncertainty") in (None, "")
+                             else float(payload["uncertainty"])),
+                run_id=str(payload.get("run_id", "")).strip(),
+                source=str(payload.get("source", "")).strip() or "gui",
+                provenance=Provenance.human(str(payload.get("observer", "user")).strip() or "user"),
+            )
+            self._json({"ok": True, "measurement": measurement.as_dict()})
+            return
+
+        if path == "/api/science/analyse":
+            experiment_id = str(payload.get("experiment_id", "")).strip()
+            analysis, evidence = kernel.science.analyse_motion(
+                experiment_id,
+                run_id=str(payload.get("run_id", "")).strip(),
+            )
+            plots = []
+            if payload.get("plot", True):
+                plots = [str(path) for path, _ in
+                         kernel.science.plot_motion(experiment_id, analysis)]
+            self._json({"ok": True, "analysis": analysis.as_dict(),
+                        "evidence": [e.as_dict() for e in evidence],
+                        "plots": plots})
+            return
+
+        if path == "/api/science/claim":
+            claim = kernel.science.make_claim(
+                str(payload.get("experiment_id", "")).strip(),
+                str(payload.get("statement", "")).strip(),
+                evidence_ids=[str(x) for x in (payload.get("evidence_ids") or [])],
+                hypothesis_id=str(payload.get("hypothesis_id", "")).strip(),
+                author=str(payload.get("author", "user")).strip() or "user",
+                require_empirical=bool(payload.get("require_empirical", False)),
+            )
+            self._json({"ok": True, "claim": claim.as_dict()})
+            return
+
+        if path == "/api/science/reference-run":
+            result = run_cart_motion(
+                kernel.science,
+                source=str(payload.get("source", "example")).strip() or "example",
+            )
+            self._json({"ok": True, "result": result.summary()})
             return
 
         if path == "/api/workspaces/stage":
