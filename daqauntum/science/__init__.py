@@ -10,6 +10,7 @@ External systems - language models, simulators, sensors, research platforms -
 sit behind adapters. The core depends on none of them.
 """
 
+from science.core import ScienceCore, ScienceError
 from science.units import (
     BASE_DIMENSIONS,
     DimensionalityError,
@@ -24,6 +25,8 @@ from science.units import (
 
 __all__ = [
     "BASE_DIMENSIONS",
+    "ScienceCore",
+    "ScienceError",
     "DimensionalityError",
     "Quantity",
     "Unit",

@@ -183,6 +183,8 @@ REQUIRED = [
     "science/analysis/__init__.py",
     "science/analysis/motion.py",
     "evaluations/motion_analysis_smoke_test.py",
+    "science/core.py",
+    "evaluations/science_core_smoke_test.py",
 ]
 
 EXPECTED_VERSION = "0.4.2-dev"
